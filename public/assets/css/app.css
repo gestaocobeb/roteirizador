@@ -1,0 +1,630 @@
+/* Estilos globais do Roteirizador - complementares ao Bootstrap 5.
+   Identidade visual COBEB Distribuidora: azul #0A4FA0 e amarelo #F2B820 (extraídos da logo). */
+
+:root {
+    --cobeb-azul: #0a4fa0;
+    --cobeb-azul-escuro: #083d7c;
+    --cobeb-azul-profundo: #062c5a;
+    --cobeb-azul-claro: #e8f0fa;
+    --cobeb-azul-suave: #f3f7fc;
+    --cobeb-amarelo: #f2b820;
+    --cobeb-amarelo-escuro: #d99f0b;
+    --cobeb-amarelo-claro: #fdf5dc;
+
+    /* Neutros corporativos */
+    --cobeb-fundo: #f2f4f7;
+    --cobeb-borda: #e2e7ee;
+    --cobeb-texto: #1f2a37;
+    --cobeb-texto-suave: #5b6878;
+
+    /* Cor primária do Bootstrap = azul COBEB */
+    --bs-primary: var(--cobeb-azul);
+    --bs-primary-rgb: 10, 79, 160;
+    --bs-primary-text-emphasis: var(--cobeb-azul-escuro);
+    --bs-primary-bg-subtle: var(--cobeb-azul-claro);
+    --bs-primary-border-subtle: #b6cdea;
+    --bs-link-color: var(--cobeb-azul);
+    --bs-link-color-rgb: 10, 79, 160;
+    --bs-link-hover-color: var(--cobeb-azul-escuro);
+    --bs-link-hover-color-rgb: 8, 61, 124;
+    --bs-focus-ring-color: rgba(10, 79, 160, 0.25);
+    --bs-body-color: var(--cobeb-texto);
+    --bs-body-font-family: "Segoe UI", system-ui, -apple-system, Roboto, "Helvetica Neue", Arial, sans-serif;
+    --bs-border-color: var(--cobeb-borda);
+    --bs-border-radius: 0.5rem;
+    --bs-border-radius-sm: 0.375rem;
+}
+
+body {
+    background-color: var(--cobeb-fundo);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+main {
+    flex: 1 0 auto;
+}
+
+/* ---------- Cabeçalho: faixa da marca + faixa do menu ---------- */
+
+.topo-cobeb {
+    position: sticky;
+    top: 0;
+    z-index: 1030;
+    box-shadow: 0 2px 10px rgba(6, 44, 90, 0.12);
+}
+
+.barra-marca {
+    background-color: #fff;
+    padding: 0.55rem 0;
+}
+
+.logo-navbar {
+    height: 38px;
+    width: auto;
+}
+
+.nome-sistema {
+    color: var(--cobeb-azul-escuro);
+    font-weight: 700;
+    font-size: 1.1rem;
+    line-height: 1.15;
+    padding-left: 0.9rem;
+    border-left: 3px solid var(--cobeb-amarelo);
+}
+
+.nome-sistema small {
+    color: var(--cobeb-texto-suave);
+    font-weight: 500;
+    font-size: 0.68rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.seletor-revenda-topo label {
+    color: var(--cobeb-texto-suave);
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+}
+
+.seletor-revenda {
+    width: auto;
+    min-width: 5.5rem;
+}
+
+.usuario-topo {
+    padding-left: 0.9rem;
+    border-left: 1px solid var(--cobeb-borda);
+    color: var(--cobeb-texto);
+    font-size: 0.85rem;
+}
+
+.usuario-topo small {
+    color: var(--cobeb-texto-suave);
+    font-size: 0.72rem;
+}
+
+.avatar-usuario {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.1rem;
+    height: 2.1rem;
+    border-radius: 50%;
+    background-color: var(--cobeb-azul);
+    color: #fff;
+    font-weight: 700;
+    font-size: 0.8rem;
+    letter-spacing: 0.03em;
+    box-shadow: 0 0 0 2px #fff, 0 0 0 4px var(--cobeb-amarelo);
+}
+
+.btn-sair {
+    --bs-btn-color: var(--cobeb-texto-suave);
+    --bs-btn-border-color: var(--cobeb-borda);
+    --bs-btn-hover-color: #fff;
+    --bs-btn-hover-bg: var(--cobeb-azul);
+    --bs-btn-hover-border-color: var(--cobeb-azul);
+    --bs-btn-active-color: #fff;
+    --bs-btn-active-bg: var(--cobeb-azul-escuro);
+    --bs-btn-active-border-color: var(--cobeb-azul-escuro);
+}
+
+.barra-menu {
+    background: linear-gradient(90deg, var(--cobeb-azul-escuro) 0%, var(--cobeb-azul) 100%);
+    border-bottom: 3px solid var(--cobeb-amarelo);
+}
+
+.barra-menu .nav-link {
+    color: rgba(255, 255, 255, 0.82);
+    font-size: 0.9rem;
+    font-weight: 500;
+    padding: 0.8rem 1rem !important;
+    border-bottom: 3px solid transparent;
+    margin-bottom: -3px;
+    transition: background-color 0.15s, color 0.15s;
+}
+
+.barra-menu .nav-link .bi {
+    margin-right: 0.2rem;
+    opacity: 0.9;
+}
+
+.barra-menu .nav-link:hover,
+.barra-menu .nav-link:focus {
+    color: #fff;
+    background-color: rgba(255, 255, 255, 0.08);
+}
+
+.barra-menu .nav-link.active {
+    color: #fff;
+    font-weight: 600;
+    background-color: rgba(255, 255, 255, 0.12);
+    border-bottom-color: var(--cobeb-amarelo);
+}
+
+.barra-menu .navbar-toggler {
+    border-color: rgba(255, 255, 255, 0.35);
+}
+
+/* ---------- Títulos das telas ---------- */
+
+.conteudo-cobeb h1 {
+    color: var(--cobeb-azul-profundo);
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    position: relative;
+    padding-left: 0.85rem;
+}
+
+/* Marca amarela à esquerda do título da tela. */
+.conteudo-cobeb h1::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0.15em;
+    bottom: 0.15em;
+    width: 4px;
+    border-radius: 2px;
+    background-color: var(--cobeb-amarelo);
+}
+
+.conteudo-cobeb h1 + p.text-muted,
+.conteudo-cobeb h1 + p {
+    padding-left: 0.85rem;
+}
+
+.text-muted {
+    color: var(--cobeb-texto-suave) !important;
+}
+
+/* ---------- Selos ---------- */
+
+.badge {
+    font-weight: 600;
+    letter-spacing: 0.01em;
+}
+
+.badge-mesa {
+    background-color: var(--cobeb-amarelo);
+    color: #1f2937;
+}
+
+/* Revenda (PM, LP, AB) */
+.badge-revenda {
+    background-color: var(--cobeb-azul-escuro);
+    color: #fff;
+    letter-spacing: 0.04em;
+}
+
+.text-bg-warning {
+    background-color: var(--cobeb-amarelo) !important;
+    color: #1f2937 !important;
+}
+
+/* ---------- Botões e formulários ---------- */
+
+.btn {
+    font-weight: 500;
+}
+
+.btn-primary {
+    --bs-btn-bg: var(--cobeb-azul);
+    --bs-btn-border-color: var(--cobeb-azul);
+    --bs-btn-hover-bg: var(--cobeb-azul-escuro);
+    --bs-btn-hover-border-color: var(--cobeb-azul-escuro);
+    --bs-btn-active-bg: var(--cobeb-azul-profundo);
+    --bs-btn-active-border-color: var(--cobeb-azul-profundo);
+    --bs-btn-disabled-bg: var(--cobeb-azul);
+    --bs-btn-disabled-border-color: var(--cobeb-azul);
+    --bs-btn-focus-shadow-rgb: 10, 79, 160;
+}
+
+.btn-outline-primary {
+    --bs-btn-color: var(--cobeb-azul);
+    --bs-btn-border-color: var(--cobeb-azul);
+    --bs-btn-hover-bg: var(--cobeb-azul);
+    --bs-btn-hover-border-color: var(--cobeb-azul);
+    --bs-btn-active-bg: var(--cobeb-azul-escuro);
+    --bs-btn-active-border-color: var(--cobeb-azul-escuro);
+    --bs-btn-focus-shadow-rgb: 10, 79, 160;
+}
+
+.btn-warning {
+    --bs-btn-bg: var(--cobeb-amarelo);
+    --bs-btn-border-color: var(--cobeb-amarelo);
+    --bs-btn-hover-bg: var(--cobeb-amarelo-escuro);
+    --bs-btn-hover-border-color: var(--cobeb-amarelo-escuro);
+    --bs-btn-color: #1f2937;
+    --bs-btn-hover-color: #1f2937;
+}
+
+.form-label {
+    color: var(--cobeb-texto-suave);
+    font-weight: 600;
+}
+
+.form-label.small {
+    font-size: 0.75rem;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+}
+
+.form-control,
+.form-select {
+    border-color: #d3dae3;
+}
+
+.form-control:focus,
+.form-select:focus {
+    border-color: #6f9bd4;
+    box-shadow: 0 0 0 0.2rem rgba(10, 79, 160, 0.18);
+}
+
+.form-check-input:checked {
+    background-color: var(--cobeb-azul);
+    border-color: var(--cobeb-azul);
+}
+
+.progress {
+    background-color: var(--cobeb-azul-claro);
+}
+
+.progress-bar {
+    background-color: var(--cobeb-azul);
+}
+
+.progress-bar.bg-warning {
+    background-color: var(--cobeb-amarelo) !important;
+}
+
+/* ---------- Abas internas das telas ---------- */
+
+.nav-tabs {
+    border-bottom: 1px solid var(--cobeb-borda);
+    gap: 0.25rem;
+}
+
+.nav-tabs .nav-link {
+    color: var(--cobeb-texto-suave);
+    font-weight: 500;
+    border: 0;
+    border-bottom: 3px solid transparent;
+    border-radius: 0;
+    padding: 0.6rem 0.9rem;
+    margin-bottom: -1px;
+}
+
+.nav-tabs .nav-link:hover {
+    color: var(--cobeb-azul);
+    border-bottom-color: var(--cobeb-azul-claro);
+    isolation: isolate;
+}
+
+.nav-tabs .nav-link.active {
+    color: var(--cobeb-azul);
+    font-weight: 600;
+    background-color: transparent;
+    border-bottom-color: var(--cobeb-azul);
+}
+
+/* ---------- Cartões ---------- */
+
+.card {
+    border: 1px solid var(--cobeb-borda);
+    border-radius: 0.6rem;
+    box-shadow: 0 1px 2px rgba(16, 24, 40, 0.05);
+}
+
+a.card:hover {
+    border-color: #b6cdea;
+    box-shadow: 0 4px 14px rgba(10, 79, 160, 0.12);
+    transform: translateY(-1px);
+    transition: box-shadow 0.15s, transform 0.15s;
+}
+
+.card-header {
+    background-color: #fff;
+    border-bottom: 1px solid var(--cobeb-borda);
+    color: var(--cobeb-azul-escuro);
+    font-weight: 600;
+    padding: 0.7rem 1rem;
+}
+
+.card-header:first-child {
+    border-radius: 0.6rem 0.6rem 0 0;
+}
+
+.card-header .bi {
+    color: var(--cobeb-azul);
+}
+
+.card-footer {
+    background-color: var(--cobeb-azul-suave);
+    border-top: 1px solid var(--cobeb-borda);
+}
+
+/* Indicadores de resumo (cartões do topo das telas): faixa amarela e número em destaque. */
+.card.card-body.py-2,
+.card.h-100 > .card-body.py-2 {
+    border-left: 4px solid var(--cobeb-amarelo);
+    border-radius: 0.6rem;
+}
+
+.card.h-100 > .card-body.py-2 {
+    border-radius: 0.6rem 0 0 0.6rem;
+}
+
+.card.card-body.py-2 .small.text-muted:first-child,
+.card.h-100 > .card-body.py-2 > .small.text-muted:first-child {
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+}
+
+.card.card-body.py-2 .fs-4,
+.card.h-100 > .card-body.py-2 .fs-5 {
+    color: var(--cobeb-azul-profundo);
+}
+
+/* ---------- Tabelas ---------- */
+
+.table {
+    --bs-table-hover-bg: var(--cobeb-azul-suave);
+    font-size: 0.875rem;
+    margin-bottom: 0;
+}
+
+.table > :not(caption) > * > * {
+    padding: 0.5rem 0.65rem;
+    border-bottom-color: #edf0f4;
+}
+
+.table-light {
+    --bs-table-bg: #f1f4f9;
+    --bs-table-color: #44546a;
+    --bs-table-border-color: var(--cobeb-borda);
+}
+
+thead.table-light th {
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    vertical-align: middle;
+    border-bottom: 2px solid #d5deea;
+}
+
+tfoot.table-light td,
+tfoot.table-light th {
+    color: var(--cobeb-azul-profundo);
+    border-top: 2px solid #d5deea;
+}
+
+.table a:not(.btn) {
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.table a:not(.btn):hover {
+    text-decoration: underline;
+}
+
+.card > .table-responsive:last-child .table tbody tr:last-child > * {
+    border-bottom: 0;
+}
+
+/* ---------- Alertas ---------- */
+
+.alert {
+    border: 0;
+    border-left: 4px solid currentColor;
+    border-radius: 0.5rem;
+}
+
+.alert-info {
+    --bs-alert-bg: var(--cobeb-azul-suave);
+    --bs-alert-color: var(--cobeb-azul-escuro);
+}
+
+.alert-warning {
+    --bs-alert-bg: var(--cobeb-amarelo-claro);
+    --bs-alert-color: #7a5a00;
+}
+
+/* ---------- Rodapé ---------- */
+
+.rodape-cobeb {
+    background-color: #fff;
+    border-top: 1px solid var(--cobeb-borda);
+    color: var(--cobeb-texto-suave);
+    padding: 0.9rem 0;
+    margin-top: 1rem;
+}
+
+/* ---------- Telas de acesso (login / primeiro acesso) ---------- */
+
+.pagina-acesso {
+    background:
+        radial-gradient(circle at 85% 15%, rgba(242, 184, 32, 0.18) 0, transparent 35%),
+        linear-gradient(160deg, var(--cobeb-azul) 0%, var(--cobeb-azul-escuro) 55%, var(--cobeb-azul-profundo) 100%);
+    min-height: 100vh;
+}
+
+.pagina-acesso footer {
+    color: rgba(255, 255, 255, 0.7) !important;
+}
+
+.card-acesso {
+    border: 0;
+    border-top: 5px solid var(--cobeb-amarelo);
+    box-shadow: 0 20px 45px rgba(0, 0, 0, 0.25);
+}
+
+.logo-acesso {
+    max-width: 220px;
+    width: 100%;
+    height: auto;
+}
+
+.titulo-cobeb {
+    color: var(--cobeb-azul);
+    font-weight: 700;
+}
+
+/* ---------- Crítica GOD ---------- */
+
+/* Tabela com cabeçalho fixo e rolagem própria. */
+.tabela-critica {
+    max-height: 70vh;
+}
+
+.tabela-critica thead th {
+    white-space: nowrap;
+    z-index: 2;
+}
+
+.faixa-filtro {
+    width: 12rem;
+}
+
+.linha-decidida > td {
+    background-color: #f1f8f3;
+}
+
+.linha-salva > td {
+    background-color: #d1e7dd !important;
+    transition: background-color 0.3s;
+}
+
+/* ---------- Celular (até 767px) ---------- */
+
+@media (max-width: 767.98px) {
+    /* Cabeçalho em duas linhas: logo, usuário e Sair em cima; Sala/Revenda embaixo. */
+    .seletores-topo {
+        order: 3;
+        width: 100%;
+        padding-top: 0.45rem;
+        border-top: 1px solid var(--cobeb-borda);
+    }
+
+    .seletores-topo:empty {
+        display: none;
+    }
+
+    .seletores-topo .seletor-revenda {
+        min-width: 5rem;
+    }
+
+    .usuario-topo {
+        padding-left: 0;
+        border-left: 0;
+    }
+
+    .logo-navbar {
+        height: 32px;
+    }
+
+    /* Menu aberto: itens maiores, fáceis de tocar. */
+    .barra-menu .nav-link {
+        padding: 0.75rem 0.5rem !important;
+        margin-bottom: 0;
+        border-bottom: 0;
+        border-left: 3px solid transparent;
+    }
+
+    .barra-menu .nav-link.active {
+        border-left-color: var(--cobeb-amarelo);
+    }
+
+    .conteudo-cobeb {
+        padding-top: 1rem !important;
+    }
+
+    .conteudo-cobeb h1 {
+        font-size: 1.35rem;
+    }
+
+    /* Abas internas numa linha só, com rolagem lateral. */
+    .nav-tabs {
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        overflow-y: hidden;
+        scrollbar-width: none;
+    }
+
+    .nav-tabs::-webkit-scrollbar {
+        display: none;
+    }
+
+    .nav-tabs .nav-link {
+        white-space: nowrap;
+        padding: 0.55rem 0.7rem;
+    }
+
+    /* Tabelas compactas: uma linha por registro e rolagem lateral (table-responsive). */
+    .table-responsive > .table > :not(caption) > * > * {
+        white-space: nowrap;
+    }
+
+    /* 16px evita o zoom automático do iPhone ao tocar num campo. */
+    .form-control,
+    .form-select,
+    .form-control-sm,
+    .form-select-sm {
+        font-size: 16px;
+    }
+
+    /* Filtros que ficam lado a lado no computador quebram linha no celular. */
+    form.d-flex:not(.seletor-revenda-topo) {
+        flex-wrap: wrap;
+    }
+
+    .rodape-cobeb {
+        text-align: center;
+    }
+
+    .rodape-cobeb .container-fluid {
+        justify-content: center !important;
+    }
+}
+
+@media print {
+    body {
+        background-color: #fff;
+        display: block;
+    }
+
+    .card {
+        border: 0;
+        box-shadow: none;
+    }
+
+    .tabela-critica {
+        max-height: none;
+    }
+}

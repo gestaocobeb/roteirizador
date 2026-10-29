@@ -1,0 +1,30 @@
+# Configuração real (senhas do banco) — versionar apenas o .env.example
+.env
+
+# Dependências geradas pelo Composer (composer install na implantação)
+/vendor/
+
+# Arquivos gerados em execução (as pastas ficam pelo .gitkeep)
+/storage/logs/*
+/storage/cache/*
+/storage/temp/*
+!/storage/**/.gitkeep
+/public/uploads/*
+!/public/uploads/.htaccess
+!/public/uploads/.gitkeep
+
+# Relatórios e planilhas com dados de clientes (Cora/Promax) — nunca versionar
+*.xlsx
+*.xlsm
+*.xls
+*.csv
+*.csv.inf
+*.inf
+Roteirizador - Guia do Comercial.pptx
+
+# Sistema operacional / editores
+Thumbs.db
+desktop.ini
+.DS_Store
+.vscode/
+.idea/

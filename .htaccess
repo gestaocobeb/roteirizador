@@ -1,0 +1,4 @@
+# Este diretório nunca deve ser o DocumentRoot.
+# O DocumentRoot (ou destino do Proxy Reverso) deve apontar sempre para /public.
+# Esta regra é uma proteção adicional caso a configuração do servidor esteja incorreta.
+Require all denied

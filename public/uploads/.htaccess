@@ -1,0 +1,13 @@
+# Requisito de segurança (Manual de Segurança, Seção 6.4):
+# arquivos enviados por usuários nunca devem ser executados pelo servidor.
+
+Options -Indexes -ExecCGI
+AddHandler cgi-script .php .php3 .php4 .php5 .php7 .php8 .phtml .pl .py .jsp .asp .sh .cgi
+
+<IfModule mod_php.c>
+    php_flag engine off
+</IfModule>
+
+<FilesMatch "\.(php|phtml|php\d*|pl|py|jsp|asp|sh|cgi|exe)$">
+    Require all denied
+</FilesMatch>

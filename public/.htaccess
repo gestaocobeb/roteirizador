@@ -1,0 +1,18 @@
+Options -Indexes -MultiViews
+DirectoryIndex index.php
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # Bloqueia acesso direto a arquivos ocultos (.env, .git etc.)
+    RewriteRule ^\.(?!well-known) - [F]
+
+    # Não reescreve arquivos e diretórios existentes (assets reais)
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteRule ^ index.php [QSA,L]
+</IfModule>
+
+<FilesMatch "\.(env|log|sql|md)$">
+    Require all denied
+</FilesMatch>
