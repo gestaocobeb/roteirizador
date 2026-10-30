@@ -22,6 +22,8 @@ services:
       TZ: America/Sao_Paulo
     volumes:
       - storage:/var/www/roteirizador/storage
+    networks:
+      - roteirizador
     depends_on:
       db:
         condition: service_healthy
@@ -42,11 +44,16 @@ services:
       - dados:/var/lib/mysql
       # Executado apenas na primeira subida (volume "dados" vazio).
       - ./database/database.sql:/docker-entrypoint-initdb.d/01-database.sql:ro
+    networks:
+      - roteirizador
     healthcheck:
       test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
       interval: 10s
       timeout: 5s
       retries: 10
+
+networks:
+  roteirizador:
 
 volumes:
   storage:
