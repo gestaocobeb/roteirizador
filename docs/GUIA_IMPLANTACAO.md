@@ -92,3 +92,32 @@ Garantir permissão de escrita para o usuário do Apache em `storage/logs`, `sto
 ## 9. Homologação
 
 Antes da publicação em produção, submeter o sistema ao **COBEB Validator**. O sistema precisa obter classificação Nível A ou Nível B (ver Manual de Desenvolvimento, Seção 8).
+
+## 10. Implantação alternativa via Docker (Dockhand)
+
+Opcional: o caminho oficial continua sendo o XAMPP descrito acima. O Docker **não** é dependência de execução do sistema; os arquivos `Dockerfile`, `docker-compose.yml` e `docker/` apenas empacotam o mesmo código (PHP 8.2 + Apache com DocumentRoot em `public/` + MariaDB utf8mb4).
+
+No Dockhand, criar um **Git stack** com:
+
+| Campo | Valor |
+|---|---|
+| Stack name | `roteirizador` |
+| Repository | `https://github.com/gestaocobeb/roteirizador.git` (branch `main`) |
+| Compose file path | `docker-compose.yml` |
+| Additional env file / Context directory | em branco |
+
+Variáveis de ambiente do stack:
+
+| Variável | Obrigatória | Descrição |
+|---|---|---|
+| `DB_PASSWORD` | sim | Senha do usuário `roteirizador` no MariaDB |
+| `DB_ROOT_PASSWORD` | sim | Senha do root do MariaDB |
+| `PORTA_EXTERNA` | não (padrão `8090`) | Porta publicada no host |
+| `APP_HTTPS` | não (padrão `false`) | `true` se o acesso final for por HTTPS |
+| `APP_BASE_PATH` | não | Base path do Proxy Reverso do Portal (ex.: `/roteirizador`) |
+
+Observações:
+
+- O `database/database.sql` é executado automaticamente **somente na primeira subida** (volume `dados` vazio). Alterações posteriores no script precisam ser aplicadas manualmente no banco.
+- Os dados ficam nos volumes `dados` (MariaDB) e `storage` (logs e arquivos temporários). Não remova os volumes ao recriar o stack.
+- Após subir, acessar `/primeiro-acesso` para criar o administrador (seção 7).

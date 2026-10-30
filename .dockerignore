@@ -1,0 +1,13 @@
+.git
+.env
+vendor
+*.7z
+*.pptx
+*.xlsx
+*.xlsm
+*.xls
+*.csv
+storage/logs/*
+storage/cache/*
+storage/temp/*
+!storage/**/.gitkeep

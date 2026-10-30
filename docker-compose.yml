@@ -1,0 +1,53 @@
+# Stack opcional para implantação via Docker/Dockhand.
+# Variáveis definidas no ambiente do stack (ver docs/GUIA_IMPLANTACAO.md, seção 10).
+services:
+  app:
+    build: .
+    restart: unless-stopped
+    ports:
+      - "${PORTA_EXTERNA:-8090}:80"
+    environment:
+      APP_NAME: Roteirizador
+      APP_ENV: production
+      APP_DEBUG: "false"
+      APP_HTTPS: ${APP_HTTPS:-false}
+      APP_BASE_PATH: ${APP_BASE_PATH:-}
+      APP_SESSION_NAME: roteirizador_session
+      APP_SESSION_IDLE_TIMEOUT: ${APP_SESSION_IDLE_TIMEOUT:-1800}
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_DATABASE: roteirizador
+      DB_USERNAME: roteirizador
+      DB_PASSWORD: ${DB_PASSWORD:?defina DB_PASSWORD}
+      TZ: America/Sao_Paulo
+    volumes:
+      - storage:/var/www/roteirizador/storage
+    depends_on:
+      db:
+        condition: service_healthy
+
+  db:
+    image: mariadb:11.4
+    restart: unless-stopped
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+    environment:
+      MARIADB_DATABASE: roteirizador
+      MARIADB_USER: roteirizador
+      MARIADB_PASSWORD: ${DB_PASSWORD:?defina DB_PASSWORD}
+      MARIADB_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:?defina DB_ROOT_PASSWORD}
+      TZ: America/Sao_Paulo
+    volumes:
+      - dados:/var/lib/mysql
+      # Executado apenas na primeira subida (volume "dados" vazio).
+      - ./database/database.sql:/docker-entrypoint-initdb.d/01-database.sql:ro
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  storage:
+  dados:
