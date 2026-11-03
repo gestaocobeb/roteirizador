@@ -20,6 +20,9 @@
                     </div>
                     <button type="submit" class="btn btn-primary w-100">Entrar</button>
                 </form>
+                <div class="text-center mt-3">
+                    <a href="<?= e(base_url('esqueci-senha')) ?>" class="small">Esqueci minha senha</a>
+                </div>
             </div>
         </div>
     </div>

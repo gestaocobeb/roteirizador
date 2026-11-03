@@ -151,4 +151,15 @@ Limites padrão da Prioridade: 5 clientes e 15 HL por setor nas Mesas 52 e 53; 5
 
 Com a tabela `usuarios` vazia, o sistema abre a tela **/primeiro-acesso** para criar o administrador. A tela deixa de existir assim que o primeiro usuário é criado.
 
+## Esqueci minha senha
+
+Na tela de login, o link **Esqueci minha senha** (`/esqueci-senha`) pede o e-mail do usuário e envia um link para `/redefinir-senha/{token}`, onde ele define a nova senha.
+
+- O link vale por **1 hora** e só pode ser usado **uma vez**. Um novo pedido invalida o link anterior. Pedidos repetidos em menos de 2 minutos são ignorados.
+- A mensagem exibida é sempre a mesma, exista ou não o e-mail, para não revelar quais e-mails estão cadastrados. Usuários inativos não recebem o link.
+- O banco (`redefinicoes_senha`) guarda só o hash SHA-256 do token. O token puro existe apenas no e-mail.
+- O link é montado com `APP_URL` do `.env`, nunca com o Host da requisição. O envio usa SMTP (`MAIL_*` no `.env`) via PHPMailer (`app/Helpers/Email.php`). Sem `APP_URL` ou SMTP configurado, nada é enviado e o erro fica em `storage/logs`.
+- Com `APP_ENV=development`, o link também é gravado em `storage/logs/app-AAAA-MM-DD.log` (linha `[DESENVOLVIMENTO]`), para testar sem SMTP. Em produção o link nunca vai para o log.
+- O administrador continua podendo trocar a senha de qualquer usuário na tela **Usuários**.
+
 Para instalação, ver `GUIA_IMPLANTACAO.md`.

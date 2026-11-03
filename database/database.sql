@@ -21,6 +21,18 @@ CREATE TABLE IF NOT EXISTS usuarios (
 -- O primeiro administrador é criado pela tela /primeiro-acesso,
 -- disponível somente enquanto esta tabela estiver vazia.
 
+-- Links de "Esqueci minha senha": guarda só o hash SHA-256 do token enviado por e-mail.
+-- Uso único, validade de 1 hora; um novo pedido apaga os anteriores do usuário.
+CREATE TABLE IF NOT EXISTS redefinicoes_senha (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    usuarios_id INT UNSIGNED NOT NULL,
+    token_hash CHAR(64) NOT NULL COMMENT 'hash(sha256) do token; o token puro só existe no e-mail',
+    expira_em DATETIME NOT NULL,
+    criado_em DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY uk_redefinicoes_senha_token (token_hash),
+    CONSTRAINT fk_redefinicoes_senha_usuarios FOREIGN KEY (usuarios_id) REFERENCES usuarios (id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- Abas (telas) liberadas para cada usuário, dentro do que o perfil permite.
 -- Administradores têm sempre todas as abas e não precisam de registros aqui.
 CREATE TABLE IF NOT EXISTS usuarios_abas (

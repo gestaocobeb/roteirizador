@@ -112,7 +112,7 @@ class UsuarioModel extends Model
 
     public function buscarPorEmail(string $email): ?array
     {
-        $stmt = $this->db->prepare('SELECT id FROM usuarios WHERE email = :email LIMIT 1');
+        $stmt = $this->db->prepare('SELECT id, nome, email, ativo FROM usuarios WHERE email = :email LIMIT 1');
         $stmt->execute(['email' => $email]);
         $resultado = $stmt->fetch();
 

@@ -11,7 +11,9 @@
         "ext-zip": "*",
         "ext-xmlreader": "*",
         "ext-simplexml": "*",
-        "ext-fileinfo": "*"
+        "ext-fileinfo": "*",
+        "ext-openssl": "*",
+        "phpmailer/phpmailer": "^6.9"
     },
     "autoload": {
         "psr-4": {

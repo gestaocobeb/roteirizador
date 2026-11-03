@@ -34,6 +34,10 @@ $router->post('/login', [AuthController::class, 'login'], [CsrfMiddleware::class
 $router->post('/logout', [AuthController::class, 'logout'], $logadoPost);
 $router->get('/primeiro-acesso', [AuthController::class, 'primeiroAcessoForm']);
 $router->post('/primeiro-acesso', [AuthController::class, 'primeiroAcesso'], [CsrfMiddleware::class]);
+$router->get('/esqueci-senha', [AuthController::class, 'esqueciSenhaForm']);
+$router->post('/esqueci-senha', [AuthController::class, 'esqueciSenha'], [CsrfMiddleware::class]);
+$router->get('/redefinir-senha/{token}', [AuthController::class, 'redefinirSenhaForm']);
+$router->post('/redefinir-senha', [AuthController::class, 'redefinirSenha'], [CsrfMiddleware::class]);
 
 // Painel e consulta
 $router->get('/', [HomeController::class, 'index'], $logado);

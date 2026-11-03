@@ -44,6 +44,8 @@ Reinicie o Apache depois de alterar o `php.ini`.
 composer install --no-dev --optimize-autoloader
 ```
 
+Instala o PHPMailer (envio do e-mail de "Esqueci minha senha"). Em uma atualização de versão, rode o comando de novo.
+
 ## 4. Variáveis de ambiente
 
 ```bash
@@ -51,6 +53,13 @@ copy .env.example .env
 ```
 
 Editar `.env` com as credenciais reais do ambiente (nunca versionar o `.env` real). Atrás do Portal, preencher `APP_BASE_PATH` com o caminho definido pelo Proxy Reverso.
+
+Para o **Esqueci minha senha** funcionar, preencher também:
+
+- `APP_URL`: endereço público completo pelo qual os usuários acessam o sistema (ex.: `https://portal.cobeb.com.br/roteirizador`). É o início do link enviado por e-mail.
+- `MAIL_HOST`, `MAIL_PORT`, `MAIL_ENCRYPTION` (`tls`, `ssl` ou vazio), `MAIL_USERNAME`, `MAIL_PASSWORD`, `MAIL_FROM_ADDRESS` e `MAIL_FROM_NAME`: servidor SMTP da COBEB (solicitar ao TI).
+
+Sem esses valores o sistema funciona normalmente, mas o link não é enviado (o erro fica em `storage/logs`). Nesse caso, a senha é trocada pelo administrador na tela **Usuários**.
 
 ## 5. Banco de dados
 
@@ -61,6 +70,8 @@ CREATE DATABASE roteirizador CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 ```bash
 mysql -u usuario -p roteirizador < database/database.sql
 ```
+
+Em uma instalação já existente, rodar o mesmo script de novo cria só as tabelas novas (ex.: `redefinicoes_senha`), sem apagar dados.
 
 O script já cadastra:
 - as Mesas por revenda: PM (52, 53, 54), LP (22, 23) e AB (24);
@@ -115,6 +126,8 @@ Variáveis de ambiente do stack:
 | `PORTA_EXTERNA` | não (padrão `8090`) | Porta publicada no host |
 | `APP_HTTPS` | não (padrão `false`) | `true` se o acesso final for por HTTPS |
 | `APP_BASE_PATH` | não | Base path do Proxy Reverso do Portal (ex.: `/roteirizador`) |
+| `APP_URL` | para o "Esqueci minha senha" | Endereço público completo (ex.: `https://portal.cobeb.com.br/roteirizador`) |
+| `MAIL_HOST`, `MAIL_PORT`, `MAIL_ENCRYPTION`, `MAIL_USERNAME`, `MAIL_PASSWORD`, `MAIL_FROM_ADDRESS`, `MAIL_FROM_NAME` | para o "Esqueci minha senha" | SMTP da COBEB (ver seção 4) |
 
 Observações:
 

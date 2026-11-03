@@ -16,8 +16,8 @@ COPY --from=composer:2 /usr/bin/composer /usr/local/bin/composer
 WORKDIR /var/www/roteirizador
 COPY . .
 
-# Apenas o autoload PSR-4 (o projeto não tem dependências de terceiros).
-RUN composer dump-autoload --optimize --no-dev \
+# Instala as dependências do composer.lock (PHPMailer) e gera o autoload PSR-4.
+RUN composer install --no-dev --optimize-autoloader --no-interaction \
     && chown -R www-data:www-data storage public/uploads
 
 EXPOSE 80
