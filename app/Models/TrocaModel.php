@@ -19,16 +19,18 @@ class TrocaModel extends ImportavelModel
     /**
      * Valor (R$) das trocas da revenda por setor, status e sistema de origem
      * ([setor][status][sistema] => valor, chaves em minúsculas). Base da Verba de troca.
+     * Com $mes (AAAA-MM), só as trocas com Data Solicitação no mês.
      */
-    public function valoresPorSetor(string $revenda): array
+    public function valoresPorSetor(string $revenda, ?string $mes = null): array
     {
+        [$filtroMes, $parametros] = $this->filtroMes($mes, 'data_solicitacao');
         $stmt = $this->db->prepare(
             'SELECT setor_codigo, LOWER(status_solicitacao) AS status, LOWER(sistema_origem) AS sistema, SUM(valor) AS valor
              FROM trocas
-             WHERE revenda = :revenda AND setor_codigo IS NOT NULL
+             WHERE revenda = :revenda AND setor_codigo IS NOT NULL' . $filtroMes . '
              GROUP BY setor_codigo, LOWER(status_solicitacao), LOWER(sistema_origem)'
         );
-        $stmt->execute(['revenda' => $revenda]);
+        $stmt->execute(['revenda' => $revenda] + $parametros);
 
         $resultado = [];
         foreach ($stmt->fetchAll() as $linha) {
@@ -41,10 +43,11 @@ class TrocaModel extends ImportavelModel
     /**
      * Solicitações da revenda (uma linha por solicitação, itens somados), da mais
      * antiga para a mais nova, com a justificativa da Logística. Base da lista de
-     * solicitações da Aprovação troca.
+     * solicitações da Aprovação troca. Com $mes (AAAA-MM), só as do mês.
      */
-    public function solicitacoes(string $revenda): array
+    public function solicitacoes(string $revenda, ?string $mes = null): array
     {
+        [$filtroMes, $parametros] = $this->filtroMes($mes, 't.data_solicitacao');
         $stmt = $this->db->prepare(
             "SELECT t.solicitacao, t.cliente_codigo, MAX(t.cliente_nome) AS cliente_nome, MIN(t.data_solicitacao) AS data_solicitacao,
                     t.status_solicitacao, t.sistema_origem, t.setor_codigo, MAX(t.motorista_nome) AS motorista_nome,
@@ -56,11 +59,11 @@ class TrocaModel extends ImportavelModel
              LEFT JOIN trocas_justificativas j
                     ON j.revenda = t.revenda AND j.solicitacao = t.solicitacao AND j.cliente_codigo = t.cliente_codigo
              LEFT JOIN usuarios u ON u.id = j.usuarios_id
-             WHERE t.revenda = :revenda
+             WHERE t.revenda = :revenda" . $filtroMes . "
              GROUP BY t.solicitacao, t.cliente_codigo, t.status_solicitacao, t.sistema_origem, t.setor_codigo
              ORDER BY MIN(t.data_solicitacao), CAST(t.solicitacao AS UNSIGNED), t.cliente_codigo"
         );
-        $stmt->execute(['revenda' => $revenda]);
+        $stmt->execute(['revenda' => $revenda] + $parametros);
 
         return $stmt->fetchAll();
     }
@@ -80,19 +83,20 @@ class TrocaModel extends ImportavelModel
 
     /**
      * Trocas aprovadas de um sistema de origem somadas por motorista (nome => valor),
-     * do maior valor para o menor.
+     * do maior valor para o menor. Com $mes (AAAA-MM), só as do mês.
      */
-    public function aprovadasPorMotorista(string $revenda, string $sistema): array
+    public function aprovadasPorMotorista(string $revenda, string $sistema, ?string $mes = null): array
     {
+        [$filtroMes, $parametros] = $this->filtroMes($mes, 'data_solicitacao');
         $stmt = $this->db->prepare(
             "SELECT motorista_nome AS nome, SUM(valor) AS valor
              FROM trocas
              WHERE revenda = :revenda AND status_solicitacao = 'Aprovada' AND sistema_origem = :sistema
-               AND motorista_nome IS NOT NULL
+               AND motorista_nome IS NOT NULL" . $filtroMes . "
              GROUP BY motorista_nome
              ORDER BY valor DESC, motorista_nome"
         );
-        $stmt->execute(['revenda' => $revenda, 'sistema' => $sistema]);
+        $stmt->execute(['revenda' => $revenda, 'sistema' => $sistema] + $parametros);
 
         return array_map('floatval', $stmt->fetchAll(\PDO::FETCH_KEY_PAIR));
     }
@@ -101,24 +105,64 @@ class TrocaModel extends ImportavelModel
      * Trocas aprovadas de um sistema de origem somadas por ajudante (nome => valor),
      * do maior valor para o menor.
      * Cada item conta para os dois ajudantes da entrega, como na planilha.
+     * Com $mes (AAAA-MM), só as do mês.
      */
-    public function aprovadasPorAjudante(string $revenda, string $sistema): array
+    public function aprovadasPorAjudante(string $revenda, string $sistema, ?string $mes = null): array
     {
+        // Sufixos 1/2: sem emulação de prepares, o PDO não aceita o mesmo parâmetro duas vezes.
+        [$filtroMes1, $parametros1] = $this->filtroMes($mes, 'data_solicitacao', '1');
+        [$filtroMes2, $parametros2] = $this->filtroMes($mes, 'data_solicitacao', '2');
         $stmt = $this->db->prepare(
             "SELECT nome, SUM(valor) AS valor FROM (
                 SELECT ajudante1_nome AS nome, valor FROM trocas
-                WHERE revenda = :revenda1 AND status_solicitacao = 'Aprovada' AND sistema_origem = :sistema1
+                WHERE revenda = :revenda1 AND status_solicitacao = 'Aprovada' AND sistema_origem = :sistema1" . $filtroMes1 . "
                 UNION ALL
                 SELECT ajudante2_nome AS nome, valor FROM trocas
-                WHERE revenda = :revenda2 AND status_solicitacao = 'Aprovada' AND sistema_origem = :sistema2
+                WHERE revenda = :revenda2 AND status_solicitacao = 'Aprovada' AND sistema_origem = :sistema2" . $filtroMes2 . "
              ) a
              WHERE nome IS NOT NULL
              GROUP BY nome
              ORDER BY valor DESC, nome"
         );
-        $stmt->execute(['revenda1' => $revenda, 'sistema1' => $sistema, 'revenda2' => $revenda, 'sistema2' => $sistema]);
+        $stmt->execute(['revenda1' => $revenda, 'sistema1' => $sistema, 'revenda2' => $revenda, 'sistema2' => $sistema] + $parametros1 + $parametros2);
 
         return array_map('floatval', $stmt->fetchAll(\PDO::FETCH_KEY_PAIR));
+    }
+
+    /**
+     * Meses (AAAA-MM) com trocas da revenda, do mais recente para o mais antigo.
+     *
+     * @return string[]
+     */
+    public function meses(string $revenda): array
+    {
+        $stmt = $this->db->prepare(
+            "SELECT DISTINCT DATE_FORMAT(data_solicitacao, '%Y-%m') AS mes
+             FROM trocas
+             WHERE revenda = :revenda AND data_solicitacao IS NOT NULL
+             ORDER BY mes DESC"
+        );
+        $stmt->execute(['revenda' => $revenda]);
+
+        return $stmt->fetchAll(\PDO::FETCH_COLUMN);
+    }
+
+    /**
+     * Trecho de WHERE e parâmetros que limitam $coluna ao mês (AAAA-MM já validado
+     * pelo Controller); sem mês, não filtra. Intervalo [dia 1, dia 1 do mês seguinte).
+     */
+    private function filtroMes(?string $mes, string $coluna, string $sufixo = ''): array
+    {
+        if ($mes === null) {
+            return ['', []];
+        }
+
+        $inicio = $mes . '-01';
+
+        return [
+            " AND {$coluna} >= :mes_inicio{$sufixo} AND {$coluna} < :mes_fim{$sufixo}",
+            ["mes_inicio{$sufixo}" => $inicio, "mes_fim{$sufixo}" => date('Y-m-d', strtotime($inicio . ' +1 month'))],
+        ];
     }
 
     /** Setor da troca: o do relatório ou, na falta, o do cadastro 01.20.11. */

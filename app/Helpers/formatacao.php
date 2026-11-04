@@ -27,6 +27,19 @@ if (!function_exists('fmt_data')) {
     }
 }
 
+if (!function_exists('fmt_mes')) {
+    /**
+     * "2026-10" => "Outubro/2026".
+     */
+    function fmt_mes(string $mes): string
+    {
+        $nomes = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+        [$ano, $numero] = array_map('intval', explode('-', $mes) + [1 => 0]);
+
+        return isset($nomes[$numero - 1]) ? $nomes[$numero - 1] . '/' . $ano : $mes;
+    }
+}
+
 if (!function_exists('fmt_data_hora')) {
     function fmt_data_hora(?string $data): string
     {

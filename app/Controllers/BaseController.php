@@ -271,11 +271,13 @@ abstract class BaseController extends Controller
      * Verba de troca da revenda (abas Aprovação troca e Troca). Como na planilha,
      * só os setores cadastrados; com $mesa, só os setores dessa Mesa.
      * foraDoCadastro: setores dos relatórios sem cadastro (ex.: 991, 995).
+     * Com $mes (AAAA-MM), só as trocas do mês; o HL (03.05.09/17.03) não tem data
+     * e continua sendo o do relatório importado.
      */
-    protected function verbaTroca(string $revenda, ?int $mesa = null): array
+    protected function verbaTroca(string $revenda, ?int $mesa = null, ?string $mes = null): array
     {
         $indicadores = new IndicadorVendaModel();
-        $valores = (new TrocaModel())->valoresPorSetor($revenda);
+        $valores = (new TrocaModel())->valoresPorSetor($revenda, $mes);
         $volumes = (new VendaSetorModel())->volumesPorSetor($revenda);
 
         $cadastrados = (new SetorModel())->listar($revenda);

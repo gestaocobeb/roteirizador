@@ -3,20 +3,48 @@ $rsHl = fn (?float $valor): string => $valor === null ? '—' : number_format($v
 // GAP em selo colorido: vermelho (negativo), amarelo (até R$ 10,00), verde (acima).
 $gap = fn (float $valor): string => '<span class="badge text-bg-' . e(cor_gap($valor)) . '">' . e(fmt_moeda($valor)) . '</span>';
 $t = $matriz['totais'] ?? [];
+// Mês escolhido acompanha os links da tela ("&mes=AAAA-MM", vazio = todos os meses).
+$paramMes = $mes !== null ? '&mes=' . $mes : '';
 ?>
 <div class="d-flex flex-wrap justify-content-between align-items-end gap-3 mb-3">
     <div>
         <h1 class="h3 mb-1">Aprovação troca</h1>
-        <p class="text-muted mb-0"><?= $revenda !== '' ? 'Revenda ' . e($revenda) : 'Nenhuma revenda liberada para o usuário' ?></p>
+        <p class="text-muted mb-0">
+            <?= $revenda !== '' ? 'Revenda ' . e($revenda) . ' &middot; ' . e($mes !== null ? fmt_mes($mes) : 'todos os meses') : 'Nenhuma revenda liberada para o usuário' ?>
+        </p>
     </div>
-    <?php if (count($revendas) > 1): ?>
-        <form method="get" action="<?= e(base_url('aprovacao-troca')) ?>">
-            <label for="filtroRevendaVerba" class="form-label small mb-1">Revenda</label>
-            <select class="form-select form-select-sm" id="filtroRevendaVerba" name="revenda" data-autosubmit>
-                <?php foreach ($revendas as $sigla): ?>
-                    <option value="<?= e($sigla) ?>" <?= $sigla === $revenda ? 'selected' : '' ?>><?= e($sigla) ?></option>
-                <?php endforeach; ?>
-            </select>
+    <?php if (count($revendas) > 1 || $meses): ?>
+        <form method="get" action="<?= e(base_url('aprovacao-troca')) ?>" class="d-flex flex-wrap gap-2 align-items-end">
+            <?php if ($filtros['ativo']): ?>
+                <!-- Mantém a aba Solicitações e os filtros dela ao trocar de mês -->
+                <input type="hidden" name="solicitacoes" value="1">
+                <input type="hidden" name="status" value="<?= e($filtros['status']) ?>">
+                <input type="hidden" name="sistema" value="<?= e($filtros['sistema']) ?>">
+                <input type="hidden" name="verba" value="<?= e($filtros['verba']) ?>">
+                <input type="hidden" name="setor" value="<?= e((string) ($filtros['setor'] ?? '')) ?>">
+                <input type="hidden" name="cliente" value="<?= e((string) ($filtros['cliente'] ?? '')) ?>">
+            <?php endif; ?>
+            <?php if (count($revendas) > 1): ?>
+                <div>
+                    <label for="filtroRevendaVerba" class="form-label small mb-1">Revenda</label>
+                    <select class="form-select form-select-sm" id="filtroRevendaVerba" name="revenda" data-autosubmit>
+                        <?php foreach ($revendas as $sigla): ?>
+                            <option value="<?= e($sigla) ?>" <?= $sigla === $revenda ? 'selected' : '' ?>><?= e($sigla) ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+            <?php endif; ?>
+            <?php if ($meses): ?>
+                <div>
+                    <label for="filtroMesVerba" class="form-label small mb-1">Mês</label>
+                    <select class="form-select form-select-sm" id="filtroMesVerba" name="mes" data-autosubmit>
+                        <option value="">Todos os meses</option>
+                        <?php foreach ($meses as $opcao): ?>
+                            <option value="<?= e($opcao) ?>" <?= $opcao === $mes ? 'selected' : '' ?>><?= e(fmt_mes($opcao)) ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+            <?php endif; ?>
             <noscript><button type="submit" class="btn btn-sm btn-outline-secondary">Filtrar</button></noscript>
         </form>
     <?php endif; ?>
@@ -65,6 +93,13 @@ $t = $matriz['totais'] ?? [];
                 <div class="alert alert-warning small py-2">
                     Importe os dois relatórios da revenda <?= e($revenda) ?> (03.18.05 e 03.05.09) para a verba ficar completa.
                     Sem o 03.05.09, a verba dos setores fica zerada e não há R$/HL.
+                </div>
+            <?php endif; ?>
+
+            <?php if ($mes !== null): ?>
+                <div class="alert alert-info small py-2">
+                    Trocas de <strong><?= e(fmt_mes($mes)) ?></strong> (Data Solicitação). O volume (HL) e a verba vêm do 03.05.09 / 17.03 importado,
+                    que não tem data: confira se ele é do mesmo mês.
                 </div>
             <?php endif; ?>
 
@@ -136,7 +171,7 @@ $t = $matriz['totais'] ?? [];
                             <?php foreach ($matriz['setores'] as $s): ?>
                                 <tr>
                                     <td class="fw-semibold">
-                                        <a href="<?= e(base_url('aprovacao-troca?solicitacoes=1&setor=' . $s['setor'])) ?>" title="Ver as solicitações Force pendentes do setor"><?= e((string) $s['setor']) ?></a>
+                                        <a href="<?= e(base_url('aprovacao-troca?solicitacoes=1&setor=' . $s['setor'] . $paramMes)) ?>" title="Ver as solicitações Force pendentes do setor"><?= e((string) $s['setor']) ?></a>
                                     </td>
                                     <td class="text-end border-start"><?= e(fmt_moeda($s['pendente_promax'])) ?></td>
                                     <td class="text-end"><?= e(fmt_moeda($s['pendente_force'])) ?></td>
@@ -215,6 +250,7 @@ $t = $matriz['totais'] ?? [];
     <div class="tab-pane fade <?= $filtros['ativo'] ? 'show active' : '' ?>" id="painelSolicitacoesVerba" role="tabpanel">
         <form method="get" action="<?= e(base_url('aprovacao-troca')) ?>" class="row g-2 align-items-end mb-3">
             <input type="hidden" name="solicitacoes" value="1">
+            <input type="hidden" name="mes" value="<?= e($mes ?? '') ?>">
             <div class="col-6 col-md-2">
                 <label for="filtroStatus" class="form-label small mb-1">Status</label>
                 <select class="form-select form-select-sm" id="filtroStatus" name="status" data-autosubmit>
@@ -256,7 +292,7 @@ $t = $matriz['totais'] ?? [];
             </div>
             <div class="col-6 col-md-auto">
                 <button type="submit" class="btn btn-sm btn-primary"><i class="bi bi-funnel"></i> Filtrar</button>
-                <a href="<?= e(base_url('aprovacao-troca?solicitacoes=1')) ?>" class="btn btn-sm btn-outline-secondary">Limpar</a>
+                <a href="<?= e(base_url('aprovacao-troca?solicitacoes=1' . $paramMes)) ?>" class="btn btn-sm btn-outline-secondary">Limpar</a>
             </div>
         </form>
 
@@ -320,6 +356,7 @@ $t = $matriz['totais'] ?? [];
                                             <input type="hidden" name="revenda" value="<?= e($revenda) ?>">
                                             <input type="hidden" name="solicitacao" value="<?= e($s['solicitacao']) ?>">
                                             <input type="hidden" name="cliente" value="<?= e((string) $s['cliente_codigo']) ?>">
+                                            <input type="hidden" name="f_mes" value="<?= e($mes ?? '') ?>">
                                             <input type="hidden" name="f_status" value="<?= e($filtros['status']) ?>">
                                             <input type="hidden" name="f_sistema" value="<?= e($filtros['sistema']) ?>">
                                             <input type="hidden" name="f_verba" value="<?= e($filtros['verba']) ?>">

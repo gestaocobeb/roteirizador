@@ -32,19 +32,26 @@ class AprovacaoTrocaController extends BaseController
         $motoristas = [];
         $ajudantes = [];
         $solicitacoes = [];
+        $meses = [];
+        $mes = null;
         $filtros = $this->filtros();
 
         if ($revenda !== '') {
             $trocas = new TrocaModel();
-            ['matriz' => $matriz, 'foraDoCadastro' => $foraDoCadastro] = $this->verbaTroca($revenda);
-            $setores = array_column($matriz['setores'], 'setor');
-            $motoristas = $trocas->aprovadasPorMotorista($revenda, 'Promax');
-            $ajudantes = $trocas->aprovadasPorAjudante($revenda, 'Promax');
 
-            // "Cabe na verba" calculado sobre todas as pendências; o filtro só limita a exibição.
+            // Mês da Data Solicitação (vale para a tela toda); só meses com trocas da revenda.
+            $meses = $trocas->meses($revenda);
+            $mes = in_array($m = (string) $this->input('mes', ''), $meses, true) ? $m : null;
+
+            ['matriz' => $matriz, 'foraDoCadastro' => $foraDoCadastro] = $this->verbaTroca($revenda, null, $mes);
+            $setores = array_column($matriz['setores'], 'setor');
+            $motoristas = $trocas->aprovadasPorMotorista($revenda, 'Promax', $mes);
+            $ajudantes = $trocas->aprovadasPorAjudante($revenda, 'Promax', $mes);
+
+            // "Cabe na verba" calculado sobre todas as pendências do mês; os demais filtros só limitam a exibição.
             $gaps = array_column($matriz['setores'], 'gap', 'setor');
             $solicitacoes = $this->filtrarSolicitacoes(
-                VerbaTroca::classificarPendentes($trocas->solicitacoes($revenda), $gaps),
+                VerbaTroca::classificarPendentes($trocas->solicitacoes($revenda, $mes), $gaps),
                 $filtros,
                 $setores
             );
@@ -65,6 +72,8 @@ class AprovacaoTrocaController extends BaseController
             'motoristas' => $motoristas,
             'ajudantes' => $ajudantes,
             'solicitacoes' => $solicitacoes,
+            'meses' => $meses,
+            'mes' => $mes,
             'filtros' => $filtros,
             'relatorios' => self::RELATORIOS,
             'importacoes' => $importacoes,
@@ -110,6 +119,7 @@ class AprovacaoTrocaController extends BaseController
         // Status e sistema vão sempre (vazio = "todos"; sem eles a tela volta ao padrão Force pendente).
         $filtros = [
             'solicitacoes' => 1,
+            'mes' => (string) $this->input('f_mes', ''),
             'status' => (string) $this->input('f_status', ''),
             'sistema' => (string) $this->input('f_sistema', ''),
             'verba' => (string) $this->input('f_verba', ''),
