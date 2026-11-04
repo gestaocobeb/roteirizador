@@ -272,7 +272,7 @@ $descricaoImportacao = function (string $tipo) use ($importacoes): string {
     <div class="tab-pane fade <?= $abaFaturado ? 'show active' : '' ?>" id="painelFaturado" role="tabpanel">
         <div class="d-flex flex-wrap justify-content-between align-items-end gap-3 mb-3">
             <p class="small text-muted mb-0">
-                Trocas aprovadas (03.18.05) contra a verba do setor: 10% do HL vendido (03.05.09). GAP = verba − Force aprovado.
+                Trocas aprovadas (03.18.05) contra a verba do setor: 10% do HL vendido (03.05.09) mais a verba extra lançada pelo Administrador, se houver. GAP = verba − Force aprovado.
             </p>
             <form method="get" action="<?= e(base_url('troca')) ?>" class="d-flex gap-2 align-items-end">
                 <input type="hidden" name="faturado" value="1">

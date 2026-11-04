@@ -6,7 +6,7 @@ namespace App\Helpers;
  * Cálculo da Verba de troca (aba MATRIZ da planilha "Reposição Novo").
  *
  * Por setor:
- * - Verba = Volume HL vendido (03.05.09) x 10%;
+ * - Verba = Volume HL vendido (03.05.09) x 10% + verba extra do Administrador (verbas_extras);
  * - GAP = Verba - trocas Force aprovadas;
  * - pendência Force "cabe na verba" quando GAP - Force pendente >= 0;
  * - R$/HL = valor Force / Volume vendido da revenda x 10 (fórmula da planilha).
@@ -24,19 +24,21 @@ class VerbaTroca
      * @param array $valores        [setor][status][sistema] => R$ (TrocaModel::valoresPorSetor)
      * @param array $volumes        setor => HL vendido (VendaSetorModel::volumesPorSetor)
      * @param float|null $volumeVendido HL vendido da revenda (null = sem 17.03 nem 03.05.09)
+     * @param array $extras         setor => R$ de verba extra (VerbaExtraModel::porSetor)
      */
-    public static function calcular(array $setores, array $valores, array $volumes, ?float $volumeVendido): array
+    public static function calcular(array $setores, array $valores, array $volumes, ?float $volumeVendido, array $extras = []): array
     {
         $linhas = [];
         $totais = array_fill_keys([
             'pendente_promax', 'pendente_force', 'pendente_customer',
-            'aprovada_promax', 'aprovada_force', 'verba', 'gap', 'volume',
+            'aprovada_promax', 'aprovada_force', 'verba_extra', 'verba', 'gap', 'volume',
         ], 0.0);
 
         foreach ($setores as $setor) {
             $v = $valores[$setor] ?? [];
             $volume = $volumes[$setor] ?? 0.0;
-            $verba = $volume * self::PERCENTUAL_VERBA;
+            $verbaExtra = $extras[$setor] ?? 0.0;
+            $verba = $volume * self::PERCENTUAL_VERBA + $verbaExtra;
             $aprovadaForce = $v['aprovada']['force'] ?? 0.0;
             $pendenteForce = $v['pendente']['force'] ?? 0.0;
             $gap = $verba - $aprovadaForce;
@@ -50,6 +52,7 @@ class VerbaTroca
                 'cabe_na_verba' => $gap - $pendenteForce >= 0,
                 'aprovada_promax' => $v['aprovada']['promax'] ?? 0.0,
                 'aprovada_force' => $aprovadaForce,
+                'verba_extra' => $verbaExtra,
                 'verba' => $verba,
                 'gap' => $gap,
                 'volume' => $volume,

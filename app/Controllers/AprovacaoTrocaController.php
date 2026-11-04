@@ -5,8 +5,10 @@ namespace App\Controllers;
 use App\Core\Logger;
 use App\Helpers\VerbaTroca;
 use App\Models\ImportacaoModel;
+use App\Models\SetorModel;
 use App\Models\TrocaJustificativaModel;
 use App\Models\TrocaModel;
+use App\Models\VerbaExtraModel;
 
 /**
  * Aba Aprovação troca (Logística e Administrador): Verba de troca por setor,
@@ -57,6 +59,9 @@ class AprovacaoTrocaController extends BaseController
             );
         }
 
+        $ehAdmin = $this->perfil() === 'admin';
+        $verbasExtras = $ehAdmin && $revenda !== '' ? (new VerbaExtraModel())->listar($revenda, $mes) : [];
+
         $ultimas = (new ImportacaoModel())->ultimasPorTipo()[$revenda] ?? [];
         $importacoes = [];
         foreach (self::RELATORIOS as $tipo => $rotulo) {
@@ -74,6 +79,10 @@ class AprovacaoTrocaController extends BaseController
             'solicitacoes' => $solicitacoes,
             'meses' => $meses,
             'mes' => $mes,
+            'ehAdmin' => $ehAdmin,
+            'verbasExtras' => $verbasExtras,
+            // Mês sugerido no lançamento de verba extra: o filtrado, o mais recente com trocas ou o atual.
+            'mesVerbaExtra' => $mes ?? ($meses[0] ?? date('Y-m')),
             'filtros' => $filtros,
             'relatorios' => self::RELATORIOS,
             'importacoes' => $importacoes,
@@ -109,6 +118,59 @@ class AprovacaoTrocaController extends BaseController
         $model->salvar($revenda, $solicitacao, $cliente, $justificativa, (int) $this->usuario()['id']);
         Logger::info("Justificativa da solicitação {$solicitacao} ({$revenda}, cliente {$cliente}) gravada por " . $this->usuario()['email']);
         $this->voltar($voltar, 'success', "Justificativa da solicitação {$solicitacao} salva. O Comercial vê na aba Troca.");
+    }
+
+    /**
+     * Administrador: grava (ou substitui) a verba extra de um setor da revenda em um mês.
+     */
+    public function salvarVerbaExtra(): void
+    {
+        $revenda = (string) $this->input('revenda', '');
+        $setor = (int) $this->input('setor', 0);
+        $mes = (string) $this->input('mes', '');
+        $valor = (float) str_replace(',', '.', (string) $this->input('valor', ''));
+        $motivo = mb_substr(trim((string) preg_replace('/\s+/u', ' ', (string) $this->input('motivo', ''))), 0, 255);
+        $voltar = 'aprovacao-troca?mes=' . urlencode((string) $this->input('voltar_mes', ''));
+
+        $setores = array_map('intval', array_column((new SetorModel())->listar($revenda), 'codigo'));
+
+        if (!$this->podeAcessarRevenda($revenda) || !in_array($setor, $setores, true)) {
+            $this->voltar($voltar, 'danger', 'Setor não encontrado na revenda.');
+        }
+
+        if (!preg_match('/^\d{4}-(0[1-9]|1[0-2])$/', $mes)) {
+            $this->voltar($voltar, 'danger', 'Informe um mês válido.');
+        }
+
+        if ($valor <= 0 || $valor > 9999999) {
+            $this->voltar($voltar, 'danger', 'Informe um valor de verba extra maior que zero.');
+        }
+
+        if ($motivo === '') {
+            $this->voltar($voltar, 'danger', 'Informe o motivo da verba extra.');
+        }
+
+        (new VerbaExtraModel())->salvar($revenda, $setor, $mes, $valor, $motivo, (int) $this->usuario()['id']);
+        Logger::info("Verba extra de {$revenda} setor {$setor} em {$mes}: " . fmt_moeda($valor) . " ({$motivo}) por " . $this->usuario()['email']);
+        $this->voltar($voltar, 'success', "Verba extra de " . fmt_moeda($valor) . " gravada para o setor {$setor} em " . fmt_mes($mes) . '.');
+    }
+
+    /**
+     * Administrador: remove uma verba extra.
+     */
+    public function removerVerbaExtra(string $id): void
+    {
+        $model = new VerbaExtraModel();
+        $extra = $model->find((int) $id);
+        $voltar = 'aprovacao-troca?mes=' . urlencode((string) $this->input('voltar_mes', ''));
+
+        if (!$extra || !$this->podeAcessarRevenda((string) $extra['revenda'])) {
+            $this->voltar($voltar, 'danger', 'Verba extra não encontrada.');
+        }
+
+        $model->delete((int) $extra['id']);
+        Logger::info("Verba extra de {$extra['revenda']} setor {$extra['setor_codigo']} em {$extra['mes']} (" . fmt_moeda($extra['valor']) . ') removida por ' . $this->usuario()['email']);
+        $this->voltar($voltar, 'success', "Verba extra do setor {$extra['setor_codigo']} em " . fmt_mes((string) $extra['mes']) . ' removida.');
     }
 
     /**

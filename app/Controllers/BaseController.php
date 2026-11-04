@@ -15,6 +15,7 @@ use App\Models\SetorModel;
 use App\Models\TrocaModel;
 use App\Models\UsuarioModel;
 use App\Models\VendaSetorModel;
+use App\Models\VerbaExtraModel;
 
 /**
  * Base dos Controllers do Roteirizador: usuário logado, mensagens flash,
@@ -271,8 +272,9 @@ abstract class BaseController extends Controller
      * Verba de troca da revenda (abas Aprovação troca e Troca). Como na planilha,
      * só os setores cadastrados; com $mesa, só os setores dessa Mesa.
      * foraDoCadastro: setores dos relatórios sem cadastro (ex.: 991, 995).
-     * Com $mes (AAAA-MM), só as trocas do mês; o HL (03.05.09/17.03) não tem data
-     * e continua sendo o do relatório importado.
+     * Com $mes (AAAA-MM), só as trocas e a verba extra do mês (sem mês, a soma das
+     * verbas extras de todos os meses); o HL (03.05.09/17.03) não tem data e continua
+     * sendo o do relatório importado.
      */
     protected function verbaTroca(string $revenda, ?int $mesa = null, ?string $mes = null): array
     {
@@ -302,7 +304,8 @@ abstract class BaseController extends Controller
             $origemVolume = '03.05.09';
         }
 
-        $matriz = VerbaTroca::calcular($setores, $valores, $volumes, $volumeVendido);
+        $extras = (new VerbaExtraModel())->porSetor($revenda, $mes);
+        $matriz = VerbaTroca::calcular($setores, $valores, $volumes, $volumeVendido, $extras);
         $matriz['origem_volume'] = $origemVolume;
 
         return [

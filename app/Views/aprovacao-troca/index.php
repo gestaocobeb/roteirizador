@@ -117,7 +117,9 @@ $paramMes = $mes !== null ? '&mes=' . $mes : '';
                     <div class="card h-100"><div class="card-body py-2">
                         <div class="small text-muted">Verba total</div>
                         <div class="fs-5 fw-semibold"><?= e(fmt_moeda($t['verba'])) ?></div>
-                        <div class="small text-muted">10% do HL dos setores</div>
+                        <div class="small text-muted">
+                            10% do HL dos setores<?= $t['verba_extra'] > 0 ? ' + ' . e(fmt_moeda($t['verba_extra'])) . ' de verba extra' : '' ?>
+                        </div>
                     </div></div>
                 </div>
                 <div class="col-6 col-lg">
@@ -161,7 +163,7 @@ $paramMes = $mes !== null ? '&mes=' . $mes : '';
                                 <th class="text-center" title="SIM quando o GAP do setor cobre o Force pendente">Cabe na verba?</th>
                                 <th class="text-end border-start">Promax</th>
                                 <th class="text-end">Force</th>
-                                <th class="text-end" title="Volume HL x 10%">Verba</th>
+                                <th class="text-end" title="Volume HL x 10% + verba extra">Verba</th>
                                 <th class="text-end" title="Verba - Force aprovado">GAP</th>
                                 <th class="text-end" title="Quantidade Hecto do 03.05.09">Volume (HL)</th>
                                 <th class="text-end">R$/HL</th>
@@ -182,7 +184,12 @@ $paramMes = $mes !== null ? '&mes=' . $mes : '';
                                     </td>
                                     <td class="text-end border-start"><?= e(fmt_moeda($s['aprovada_promax'])) ?></td>
                                     <td class="text-end"><?= e(fmt_moeda($s['aprovada_force'])) ?></td>
-                                    <td class="text-end"><?= e(fmt_moeda($s['verba'])) ?></td>
+                                    <td class="text-end">
+                                        <?= e(fmt_moeda($s['verba'])) ?>
+                                        <?php if ($s['verba_extra'] > 0): ?>
+                                            <div class="small text-success" title="Verba extra lançada pelo Administrador">+ <?= e(fmt_moeda($s['verba_extra'])) ?> extra</div>
+                                        <?php endif; ?>
+                                    </td>
                                     <td class="text-end"><?= $gap($s['gap']) ?></td>
                                     <td class="text-end"><?= e(fmt_hl($s['volume'])) ?></td>
                                     <td class="text-end"><?= e($rsHl($s['aprovada_rs_hl'])) ?></td>
@@ -215,6 +222,75 @@ $paramMes = $mes !== null ? '&mes=' . $mes : '';
                     <?php endif; ?>
                 </div>
             </div>
+
+            <?php if ($ehAdmin): ?>
+                <!-- Verba extra por setor e mês: somente Administrador -->
+                <div class="card mb-3">
+                    <div class="card-header bg-white fw-semibold">
+                        <i class="bi bi-plus-circle"></i> Verba extra
+                        <span class="small text-muted fw-normal">&middot; somente Administrador; soma na verba do setor no mês</span>
+                    </div>
+                    <div class="card-body">
+                        <form method="post" action="<?= e(base_url('aprovacao-troca/verba-extra')) ?>" class="row g-2 align-items-end">
+                            <?= csrf_field() ?>
+                            <input type="hidden" name="revenda" value="<?= e($revenda) ?>">
+                            <input type="hidden" name="voltar_mes" value="<?= e($mes ?? '') ?>">
+                            <div class="col-6 col-md-2">
+                                <label for="verbaExtraSetor" class="form-label small mb-1">Setor</label>
+                                <select class="form-select form-select-sm" id="verbaExtraSetor" name="setor" required>
+                                    <?php foreach ($matriz['setores'] as $s): ?>
+                                        <option value="<?= e((string) $s['setor']) ?>"><?= e((string) $s['setor']) ?></option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
+                            <div class="col-6 col-md-2">
+                                <label for="verbaExtraMes" class="form-label small mb-1">Mês</label>
+                                <input type="month" class="form-control form-control-sm" id="verbaExtraMes" name="mes" value="<?= e($mesVerbaExtra) ?>" required>
+                            </div>
+                            <div class="col-6 col-md-2">
+                                <label for="verbaExtraValor" class="form-label small mb-1">Valor (R$)</label>
+                                <input type="number" class="form-control form-control-sm" id="verbaExtraValor" name="valor" min="0.01" step="0.01" required>
+                            </div>
+                            <div class="col-6 col-md">
+                                <label for="verbaExtraMotivo" class="form-label small mb-1">Motivo</label>
+                                <input type="text" class="form-control form-control-sm" id="verbaExtraMotivo" name="motivo" maxlength="255" required>
+                            </div>
+                            <div class="col-12 col-md-auto">
+                                <button type="submit" class="btn btn-sm btn-primary"><i class="bi bi-check-lg"></i> Salvar</button>
+                            </div>
+                        </form>
+                        <div class="form-text">Se o setor já tiver verba extra no mês, o valor e o motivo são substituídos.</div>
+                    </div>
+                    <?php if ($verbasExtras): ?>
+                        <div class="table-responsive">
+                            <table class="table table-sm table-hover mb-0 align-middle">
+                                <thead class="table-light">
+                                    <tr><th>Mês</th><th>Setor</th><th class="text-end">Valor</th><th>Motivo</th><th>Lançado por</th><th></th></tr>
+                                </thead>
+                                <tbody>
+                                    <?php foreach ($verbasExtras as $v): ?>
+                                        <tr>
+                                            <td><?= e(fmt_mes((string) $v['mes'])) ?></td>
+                                            <td><?= e((string) $v['setor_codigo']) ?></td>
+                                            <td class="text-end"><?= e(fmt_moeda($v['valor'])) ?></td>
+                                            <td><?= e($v['motivo']) ?></td>
+                                            <td class="small text-muted"><?= e($v['usuario_nome']) ?> &middot; <?= e(fmt_data_hora($v['atualizado_em'])) ?></td>
+                                            <td class="text-end">
+                                                <form method="post" action="<?= e(base_url('aprovacao-troca/verba-extra/' . $v['id'] . '/remover')) ?>"
+                                                      onsubmit="return confirm('Remover a verba extra do setor <?= e((string) $v['setor_codigo']) ?>?')">
+                                                    <?= csrf_field() ?>
+                                                    <input type="hidden" name="voltar_mes" value="<?= e($mes ?? '') ?>">
+                                                    <button type="submit" class="btn btn-sm btn-outline-danger" title="Remover"><i class="bi bi-trash"></i></button>
+                                                </form>
+                                            </td>
+                                        </tr>
+                                    <?php endforeach; ?>
+                                </tbody>
+                            </table>
+                        </div>
+                    <?php endif; ?>
+                </div>
+            <?php endif; ?>
 
             <div class="row g-3">
                 <?php foreach (['Motoristas' => [$motoristas, 'bi-truck'], 'Ajudantes de entrega' => [$ajudantes, 'bi-person']] as $titulo => [$lista, $icone]): ?>

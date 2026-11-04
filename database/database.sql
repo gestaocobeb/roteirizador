@@ -237,6 +237,22 @@ CREATE TABLE IF NOT EXISTS trocas_justificativas (
     CONSTRAINT fk_trocas_justificativas_usuarios FOREIGN KEY (usuarios_id) REFERENCES usuarios (id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- Verba de troca extra concedida pelo Administrador a um setor em um mês (aba Aprovação troca).
+-- Soma na verba do setor (HL x 10% + extra). Um valor por revenda + setor + mês; fora de
+-- trocas/vendas_setores para sobreviver às reimportações.
+CREATE TABLE IF NOT EXISTS verbas_extras (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    revenda VARCHAR(2) NOT NULL,
+    setor_codigo SMALLINT UNSIGNED NOT NULL,
+    mes CHAR(7) NOT NULL COMMENT 'AAAA-MM (mês da Data Solicitação das trocas)',
+    valor DECIMAL(14,2) NOT NULL,
+    motivo VARCHAR(255) NOT NULL,
+    usuarios_id INT UNSIGNED NOT NULL,
+    atualizado_em DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE KEY uk_verbas_extras (revenda, setor_codigo, mes),
+    CONSTRAINT fk_verbas_extras_usuarios FOREIGN KEY (usuarios_id) REFERENCES usuarios (id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- Volume vendido (HL) por setor (Promax 03.05.09), somado na importação.
 -- Base da verba de troca do setor (aba Aprovação troca).
 CREATE TABLE IF NOT EXISTS vendas_setores (

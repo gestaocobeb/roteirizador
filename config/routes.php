@@ -47,6 +47,8 @@ $router->get('/consulta', [ConsultaController::class, 'index'], $logado);
 $router->get('/troca', [TrocaController::class, 'index'], $logado);
 $router->get('/aprovacao-troca', [AprovacaoTrocaController::class, 'index'], $logistica);
 $router->post('/aprovacao-troca/justificativa', [AprovacaoTrocaController::class, 'justificar'], $logisticaPost);
+$router->post('/aprovacao-troca/verba-extra', [AprovacaoTrocaController::class, 'salvarVerbaExtra'], $adminPost);
+$router->post('/aprovacao-troca/verba-extra/{id}/remover', [AprovacaoTrocaController::class, 'removerVerbaExtra'], $adminPost);
 
 // Crítica GOD
 $router->get('/critica', [CriticaController::class, 'index'], $logado);
