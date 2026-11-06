@@ -10,10 +10,15 @@ namespace App\Helpers;
 class Revenda
 {
     public const REVENDAS = [
-        'PM' => ['unidade_venda' => 772003, 'unb' => 1],
-        'LP' => ['unidade_venda' => 1883003, 'unb' => 2],
-        'AB' => ['unidade_venda' => 984507, 'unb' => 5],
+        'PM' => ['unidade_venda' => 772003, 'unb' => 1, 'nome' => 'Pará de Minas'],
+        'LP' => ['unidade_venda' => 1883003, 'unb' => 2, 'nome' => 'Lagoa da Prata'],
+        'AB' => ['unidade_venda' => 984507, 'unb' => 5, 'nome' => 'Abaeté'],
     ];
+
+    public static function nome(string $sigla): string
+    {
+        return self::REVENDAS[$sigla]['nome'] ?? $sigla;
+    }
 
     public static function siglas(): array
     {

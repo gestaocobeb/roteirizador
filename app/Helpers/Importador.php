@@ -25,6 +25,8 @@ class Importador
         'notas_troca' => 'Notas de troca em rota (Promax 03.02.37)',
         'vendas_setor' => 'Volume vendido por setor (Promax 03.05.09)',
         'indicadores' => 'Indicadores de vendas (Promax 17.03)',
+        'farol_mapas' => 'Farol - Mapas roteirizados (Promax 03.11.49.02)',
+        'farol_buffer' => 'Farol - Buffer do Cora (Tipo buffer)',
     ];
 
     /**
@@ -34,6 +36,8 @@ class Importador
     private const COLUNA_REVENDA = [
         'cora' => ['unidade_venda', 'unidade_venda'],
         'trocas' => ['unb', 'unb'],
+        'farol_mapas' => ['unb', 'unb'],
+        'farol_buffer' => ['unidade_venda', 'unidade_venda'],
     ];
 
     /**
@@ -171,6 +175,38 @@ class Importador
             'abas' => ['17 03'],
             'campos' => ['codigo' => 'cod id', 'descricao' => 'descricao id', 'valor' => 'valor'],
             'obrigatorios' => ['codigo', 'valor'],
+        ],
+        // 03.11.49.02: uma linha por mapa roteirizado (placa).
+        'farol_mapas' => [
+            'abas' => ['03 11 49 02'],
+            'campos' => [
+                'unb' => 'unb',
+                'data_entrega' => 'data entrega',
+                'numero_mapa' => 'nro do mapa',
+                'veiculo' => 'veiculo',
+                'placa' => 'placa',
+                'carga' => 'carga',
+                'entregas' => 'entregas',
+                'caixas' => 'total de caixas',
+                'peso' => 'total peso',
+            ],
+            'obrigatorios' => ['placa', 'carga', 'entregas', 'caixas', 'peso'],
+        ],
+        // Mesmo export do Cora, usado só pelo Farol (com a coluna "Tipo buffer"; reposições são gravadas, mas não contam no buffer).
+        'farol_buffer' => [
+            'abas' => ['CORA', 'Cora'],
+            'campos' => [
+                'unidade_venda' => 'cod unidade venda',
+                'numero_pedido' => 'numero pedido',
+                'tipo_pedido' => 'tipo pedido',
+                'cliente_codigo' => 'cod cliente',
+                'nome_fantasia' => 'nome fantasia',
+                'tipo_buffer' => 'tipo buffer',
+                'volume_hl' => 'volume hectolitro',
+                'setor_codigo' => 'cod setor',
+                'setor_descricao' => 'desc setor',
+            ],
+            'obrigatorios' => ['numero_pedido', 'cliente_codigo', 'tipo_buffer', 'volume_hl'],
         ],
     ];
 
@@ -321,6 +357,8 @@ class Importador
             'notas_troca' => $this->transformarNotasTroca($brutos),
             'vendas_setor' => $this->somarVolumePorSetor($brutos),
             'indicadores' => $this->transformarIndicadores($brutos),
+            'farol_mapas' => $this->transformarFarolMapas($brutos),
+            'farol_buffer' => $this->transformarFarolBuffer($brutos),
         };
     }
 
@@ -648,6 +686,71 @@ class Importador
      * 03.05.09: soma a "Quantidade Hecto" de todas as linhas de cada setor
      * (equivale ao SOMASES por setor da planilha MATRIZ).
      */
+    /**
+     * 03.11.49.02: um registro por mapa (linhas sem placa são descartadas).
+     */
+    private function transformarFarolMapas(array $brutos): array
+    {
+        $registros = [];
+
+        foreach ($brutos as $b) {
+            $placa = strtoupper(self::texto($b['placa'] ?? '', 20));
+            if ($placa === '') {
+                continue;
+            }
+
+            $registros[] = [
+                'data_entrega' => self::data($b['data_entrega'] ?? ''),
+                'numero_mapa' => self::texto($b['numero_mapa'] ?? '', 20) ?: null,
+                'veiculo' => self::texto($b['veiculo'] ?? '', 30) ?: null,
+                'placa' => $placa,
+                'carga' => self::texto($b['carga'] ?? '', 30),
+                'entregas' => (int) round(self::numero($b['entregas'] ?? '')),
+                'caixas' => round(self::numero($b['caixas'] ?? ''), 2),
+                'peso' => round(self::numero($b['peso'] ?? ''), 2),
+            ];
+        }
+
+        return $registros;
+    }
+
+    /**
+     * Buffer do Cora para o Farol: um registro por pedido com o "Tipo buffer"
+     * (PRESERVADO, REPROGRAMADO...) e o volume (HL) somado. Grava também as reposições;
+     * o Farol considera só os REPROGRAMADO que não são reposição (FarolBufferModel).
+     */
+    private function transformarFarolBuffer(array $brutos): array
+    {
+        $pedidos = [];
+
+        foreach ($brutos as $b) {
+            $cliente = self::codigo($b['cliente_codigo'] ?? '');
+            $pedido = self::texto($b['numero_pedido'] ?? '', 30);
+
+            if ($cliente === null || $pedido === '') {
+                continue;
+            }
+
+            $pedido = is_numeric($pedido) ? (string) (int) $pedido : $pedido;
+            $pedidos[$pedido] ??= [
+                'numero_pedido' => $pedido,
+                'cliente_codigo' => $cliente,
+                'nome_fantasia' => self::texto($b['nome_fantasia'] ?? '', 150) ?: null,
+                'tipo_pedido' => self::texto($b['tipo_pedido'] ?? '', 40) ?: null,
+                'tipo_buffer' => strtoupper(self::texto($b['tipo_buffer'] ?? '', 30)),
+                'setor_codigo' => self::codigo($b['setor_codigo'] ?? ''),
+                'setor_descricao' => self::texto($b['setor_descricao'] ?? '', 100) ?: null,
+                'volume_hl' => 0.0,
+            ];
+            $pedidos[$pedido]['volume_hl'] += self::numero($b['volume_hl'] ?? '');
+        }
+
+        return array_values(array_map(function (array $p): array {
+            $p['volume_hl'] = round($p['volume_hl'], 4);
+            return $p;
+        }, $pedidos));
+    }
+
     private function somarVolumePorSetor(array $brutos): array
     {
         $volumes = [];

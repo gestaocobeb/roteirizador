@@ -67,9 +67,9 @@ O sistema é separado por revenda em todas as telas: **PM**, **LP** e **AB**.
 
 ### Abas liberadas por usuário
 
-Na tela **Usuários**, o administrador marca quais abas (Crítica GOD, Prioridade, Consulta do dia, Troca, Aprovação troca, Importações, Setores, Usuários) cada usuário acessa. Funciona assim:
+Na tela **Usuários**, o administrador marca quais abas (Crítica GOD, Prioridade, Consulta do dia, Troca, Aprovação troca, Importações, Setores, Bees Loat, Farol, Usuários) cada usuário acessa. Funciona assim:
 
-- O perfil é o limite: Importações, Setores e Aprovação troca só podem ser liberados para Logística, e Usuários só para Administrador. Abas fora do perfil são descartadas ao salvar.
+- O perfil é o limite: Importações, Setores, Aprovação troca e Farol só podem ser liberados para Logística, e Usuários só para Administrador. Abas fora do perfil são descartadas ao salvar.
 - O Administrador tem sempre todas as abas.
 - Uma aba não liberada some do menu e do painel, e qualquer rota dela (GET ou POST) responde 403. O bloqueio é feito pelo `PerfilMiddleware`, que identifica a aba pelo primeiro segmento da URL.
 - A lista de abas fica em `UsuarioModel::ABAS`. Uma tela nova vira aba quando é adicionada a essa lista.
@@ -141,6 +141,55 @@ Limites padrão da Prioridade: 5 clientes e 15 HL por setor nas Mesas 52 e 53; 5
 - Pedidos do Cora com **Tipo pedido = REPOSICAO** são ignorados na importação (`Importador::TIPOS_PEDIDO_IGNORADOS`).
 - **Excluir importação**: só a importação **vigente** pode ser excluída. Vigente é a última de cada tipo em cada revenda; no Cora, a última de cada data de entrega na revenda. A exclusão apaga os dados que ela trouxe: no Cora, os pedidos da data; nos cadastros, a base inteira. Prioridades e decisões da data são mantidas e voltam a valer se o Cora for reimportado. O registro continua no histórico como "Excluída", com autor e data.
 - O leitor (`app/Helpers/PlanilhaLeitor.php`) lê em streaming com as extensões nativas `zip` e `xmlreader`, sem biblioteca externa.
+
+## Farol (substitui a "PLANILHA FAROL")
+
+Painel do dia por revenda (Logística), equivalente às abas "Plan1" e "R. 03.11.49.02" da planilha. Cada revenda tem um card com os indicadores e há um "Resumo do dia" com a soma das revendas. Os dados chegam por dois tipos de importação, enviados pela própria tela do Farol ou por Importações (aceitam "Todas"):
+
+- **Farol - Mapas roteirizados (Promax 03.11.49.02)**: um registro por mapa. A revenda vem da coluna UNB.
+- **Farol - Buffer do Cora**: o mesmo export do Cora, com a coluna "Tipo buffer". Grava um registro por pedido com o volume somado e o setor do cliente (Cód. setor e Desc. setor). As reposições são gravadas, mas não contam como buffer. A revenda vem do Cód. unidade venda.
+
+Cada importação substitui os dados da revenda. O **volume vendido** (Promax 03.01.47.01, Quebra 1: Geral) e as observações de Spot e recarga são digitados no card da revenda (tabela `farol_revendas`).
+
+**Imagem para WhatsApp**: o botão "Baixar imagem para WhatsApp" gera um PNG com os cards das revendas e o resumo do dia, no navegador. Em "Mapas e buffer" de cada revenda, o botão "Baixar imagem do buffer" gera a tabela dos pedidos reprogramados (pedido, cliente, nome fantasia, setor, tipo e volume) com o total, ordenada por cliente e, dentro do cliente, por volume (maior primeiro). Ao lado, "Baixar em Excel" (rota `/farol/buffer/{revenda}`) baixa a mesma lista em CSV para Excel (separador `;`, UTF-8 com BOM), com setor em duas colunas (código e descrição) e uma linha de total. O desenho é feito em `<canvas>` com JavaScript puro (`public/assets/js/farol.js`), sem biblioteca e sem processamento no servidor. No celular, quando o sistema é acessado por HTTPS, o botão abre direto o compartilhamento (WhatsApp); nos demais casos, baixa o arquivo `farol-DDMMAAAA.png`.
+
+Regras (`app/Helpers/Farol.php`):
+
+| Indicador | Cálculo |
+|---|---|
+| Tipo do mapa | Placa começando com `REC` = Recarga; carga "Freteiro" = Spot; demais = FF |
+| Volume buffer (HL) | Soma do volume hectolitro dos pedidos com Tipo buffer = REPROGRAMADO, exceto Tipo pedido = REPOSIÇÃO (a planilha somava também as reposições) |
+| Volume roteirizado (HL) | Volume vendido − volume buffer |
+| Clientes roteirizados | Soma das "Entregas" de todos os mapas (FF + Spot + Recarga) |
+| Clientes buffer | Clientes distintos com pedido REPROGRAMADO que não é reposição (na planilha era digitado) |
+| Peso roteirizado | Soma do "Total peso" dos mapas |
+| Mapas FF / Spot / Recarga programada | Quantidade de mapas de cada tipo |
+| Cx/viagem FF e Spot | Total de caixas do tipo ÷ mapas do tipo |
+
+Diferença da planilha: na aba "R. 03.11.49.02", as placas eram listadas à mão em FF, SPOT e RECARGA. No sistema, a classificação é automática. Uma placa com mais de um mapa no dia soma todos os mapas (o PROCV considerava só o primeiro). Conferido com a planilha de 06/11/2026: volume vendido, clientes roteirizados, peso, mapas e cx/viagem idênticos nas três revendas. O buffer difere da planilha onde havia reposição reprogramada (LP: 21,19 HL no sistema e 21,41 HL na planilha).
+
+## Bees Loat (CSV de dias de entrega do BEES)
+
+A aba recebe o **Relatório Bees** (export do BEES em `.csv`, separado por `;`) e um ou mais arquivos da **rotina 0105070402** do Promax (`.inf`/`.csv`). Ela devolve o CSV pronto para importar de novo no BEES. Nada é gravado no banco; as regras ficam em `app/Helpers/BeesLoat.php`. Na ordem:
+
+1. Exclui a coluna D (`Settings_Type`).
+2. Esvazia a coluna `Reference_Date` (coluna AA do arquivo original) e mantém só o título.
+3. Troca FREE por NO nas colunas de dia (`Mon` a `Sun`).
+4. Marca FREE no dia de entrega de cada cliente. O cliente é localizado pelo `Cód PDV` da rotina 0105070402, que corresponde ao `ERP_POC_ID` do Relatório Bees. O dia de entrega é o dia seguinte à visita, lida nas colunas AY ("Dia de Visita do VDE") e BH ("Dia de Visita do VDI"):
+
+   | Visita | Entrega |
+   |---|---|
+   | SEG | terça (Tue) |
+   | TER | quarta (Wed) |
+   | QUA | quinta (Thu) |
+   | QUI | sexta (Fri) |
+   | SEX | segunda (Mon) |
+
+   - Visitas em SAB e DOM não geram entrega.
+   - Um cliente com várias visitas (ex.: "QUA/SEX/") recebe FREE em todos os dias correspondentes.
+   - Com vários arquivos da rotina 0105070402, os dias de um mesmo cliente se somam.
+
+As colunas são localizadas pelo nome do cabeçalho. Se uma delas faltar, a tela avisa qual é. A saída mantém o formato do Relatório Bees: UTF-8, `;`, sem aspas.
 
 ## Estrutura específica do sistema
 

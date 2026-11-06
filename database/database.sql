@@ -263,6 +263,56 @@ CREATE TABLE IF NOT EXISTS vendas_setores (
     UNIQUE KEY uk_vendas_setores (revenda, setor_codigo)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- Farol (painel do dia por revenda), substitui a "PLANILHA FAROL".
+-- Mapas roteirizados (Promax 03.11.49.02), um por linha do relatório. O tipo do mapa
+-- (FF, Spot, Recarga) é derivado da placa e da carga em App\Helpers\Farol.
+CREATE TABLE IF NOT EXISTS farol_mapas (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    revenda VARCHAR(2) NOT NULL COMMENT 'Pela coluna UNB',
+    data_entrega DATE NULL,
+    numero_mapa VARCHAR(20) NULL,
+    veiculo VARCHAR(30) NULL,
+    placa VARCHAR(20) NOT NULL,
+    carga VARCHAR(30) NOT NULL COMMENT 'Fixa ou Freteiro',
+    entregas INT UNSIGNED NOT NULL DEFAULT 0,
+    caixas DECIMAL(12,2) NOT NULL DEFAULT 0,
+    peso DECIMAL(12,2) NOT NULL DEFAULT 0,
+    INDEX idx_farol_mapas_revenda (revenda)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Pedidos do Cora com o "Tipo buffer", volume somado por pedido. O Farol usa só os REPROGRAMADO.
+CREATE TABLE IF NOT EXISTS farol_buffer (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    revenda VARCHAR(2) NOT NULL COMMENT 'Pelo Cód. unidade venda',
+    numero_pedido VARCHAR(30) NOT NULL,
+    cliente_codigo INT UNSIGNED NOT NULL,
+    nome_fantasia VARCHAR(150) NULL,
+    tipo_pedido VARCHAR(40) NULL,
+    tipo_buffer VARCHAR(30) NOT NULL,
+    setor_codigo SMALLINT UNSIGNED NULL,
+    setor_descricao VARCHAR(100) NULL,
+    volume_hl DECIMAL(12,4) NOT NULL DEFAULT 0,
+    INDEX idx_farol_buffer_revenda (revenda, tipo_buffer)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Instalações criadas antes do setor no buffer (versão 1.6.0).
+ALTER TABLE farol_buffer ADD COLUMN IF NOT EXISTS setor_codigo SMALLINT UNSIGNED NULL AFTER tipo_buffer;
+ALTER TABLE farol_buffer ADD COLUMN IF NOT EXISTS setor_descricao VARCHAR(100) NULL AFTER setor_codigo;
+
+-- Dados digitados no Farol por revenda (não vêm de relatório): volume vendido do
+-- Promax 03.01.47.01 (Quebra 1: Geral) e observações dos mapas Spot e da recarga.
+CREATE TABLE IF NOT EXISTS farol_revendas (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    revenda VARCHAR(2) NOT NULL,
+    volume_vendido_hl DECIMAL(12,2) NULL,
+    observacao_spot VARCHAR(150) NULL,
+    observacao_recarga VARCHAR(150) NULL,
+    usuarios_id INT UNSIGNED NOT NULL,
+    atualizado_em DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE KEY uk_farol_revendas (revenda),
+    CONSTRAINT fk_farol_revendas_usuarios FOREIGN KEY (usuarios_id) REFERENCES usuarios (id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- Indicadores de vendas (Promax 17.03), coluna "Valor" de cada "Cod. ID".
 -- Verba de troca usa 563 (volume HL saída) - 564 (volume HL devolução).
 CREATE TABLE IF NOT EXISTS indicadores_vendas (

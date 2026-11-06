@@ -27,6 +27,8 @@ class UsuarioModel extends Model
         'aprovacao-troca' => ['rotulo' => 'Aprovação troca', 'icone' => 'bi-check2-square', 'perfis' => ['admin', 'logistica']],
         'importacoes' => ['rotulo' => 'Importações', 'icone' => 'bi-upload', 'perfis' => ['admin', 'logistica']],
         'setores' => ['rotulo' => 'Setores', 'icone' => 'bi-sliders', 'perfis' => ['admin', 'logistica']],
+        'bees-loat' => ['rotulo' => 'Bees Loat', 'icone' => 'bi-box-seam', 'perfis' => ['admin', 'logistica', 'comercial']],
+        'farol' => ['rotulo' => 'Farol', 'icone' => 'bi-stoplights', 'perfis' => ['admin', 'logistica']],
         'usuarios' => ['rotulo' => 'Usuários', 'icone' => 'bi-people', 'perfis' => ['admin']],
     ];
 

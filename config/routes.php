@@ -2,8 +2,10 @@
 
 use App\Controllers\AprovacaoTrocaController;
 use App\Controllers\AuthController;
+use App\Controllers\BeesLoatController;
 use App\Controllers\ConsultaController;
 use App\Controllers\CriticaController;
+use App\Controllers\FarolController;
 use App\Controllers\HomeController;
 use App\Controllers\ImportacaoController;
 use App\Controllers\PrioridadeController;
@@ -71,6 +73,15 @@ $router->post('/setores', [SetorController::class, 'criar'], $logisticaPost);
 $router->post('/setores/mesas', [SetorController::class, 'criarMesa'], $adminPost);
 $router->post('/setores/{id}', [SetorController::class, 'atualizar'], $logisticaPost);
 $router->post('/setores/mesa/{mesa}/limites', [SetorController::class, 'limitesMesa'], $adminPost);
+
+// Bees Loat: CSV de dias de entrega do BEES
+$router->get('/bees-loat', [BeesLoatController::class, 'index'], $logado);
+$router->post('/bees-loat/gerar', [BeesLoatController::class, 'gerar'], $logadoPost);
+
+// Farol: painel do dia por revenda (Logística)
+$router->get('/farol', [FarolController::class, 'index'], $logistica);
+$router->post('/farol/dados', [FarolController::class, 'salvar'], $logisticaPost);
+$router->get('/farol/buffer/{revenda}', [FarolController::class, 'exportarBuffer'], $logistica);
 
 // Administração de usuários
 $router->get('/usuarios', [UsuarioController::class, 'index'], $admin);

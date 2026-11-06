@@ -16,11 +16,11 @@
             <?php foreach ($revendasMenu as $sigla): ?>
                 <option value="<?= e($sigla) ?>" <?= $sigla === $revendaAtual ? 'selected' : '' ?>><?= e($sigla) ?></option>
             <?php endforeach; ?>
-            <option value="todas">Todas (separar pelo arquivo) &mdash; Cora e 03.18.05</option>
+            <option value="todas">Todas (separar pelo arquivo) &mdash; Cora, 03.18.05 e Farol</option>
         </select>
     <?php endif; ?>
     <div class="form-text">
-        A importação substitui somente os dados desta revenda. No Cora e no 03.18.05 o sistema confere a revenda pelo próprio arquivo.
+        A importação substitui somente os dados desta revenda. No Cora, no 03.18.05 e nos relatórios do Farol o sistema confere a revenda pelo próprio arquivo.
         <?php if (!$revendaFixa): ?>
             Com <strong>Todas</strong>, um único arquivo com PM, LP e AB é separado pela coluna de revenda (Cód. unidade venda / UNB) e cada revenda presente é substituída.
         <?php endif; ?>

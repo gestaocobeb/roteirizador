@@ -6,6 +6,8 @@ use App\Core\Logger;
 use App\Helpers\Importador;
 use App\Models\BlackListModel;
 use App\Models\ClienteModel;
+use App\Models\FarolBufferModel;
+use App\Models\FarolMapaModel;
 use App\Models\HistoricoCompraModel;
 use App\Models\ImportacaoModel;
 use App\Models\ImportavelModel;
@@ -33,7 +35,7 @@ class ImportacaoController extends BaseController
     private const TODAS_REVENDAS = 'todas';
 
     /** Telas que podem enviar arquivos para esta rota (para onde o usuário volta). */
-    private const RETORNOS = ['importacoes', 'troca', 'aprovacao-troca'];
+    private const RETORNOS = ['importacoes', 'troca', 'aprovacao-troca', 'farol'];
 
     public function index(): void
     {
@@ -63,7 +65,7 @@ class ImportacaoController extends BaseController
         $todasRevendas = $revenda === self::TODAS_REVENDAS;
 
         if ($todasRevendas && !Importador::separaPorRevenda($tipo)) {
-            $this->voltar($retorno, 'danger', 'A opção "Todas" vale só para o Cora e o 03.18.05, que informam a revenda em cada linha. Para este relatório, escolha a revenda.');
+            $this->voltar($retorno, 'danger', 'A opção "Todas" vale só para o Cora, o 03.18.05 e os relatórios do Farol, que informam a revenda em cada linha. Para este relatório, escolha a revenda.');
         }
 
         if ($todasRevendas ? count($this->revendasPermitidas()) < 2 : !$this->podeAcessarRevenda($revenda)) {
@@ -222,6 +224,8 @@ class ImportacaoController extends BaseController
             'notas_troca' => new TrocaNotaModel(),
             'vendas_setor' => new VendaSetorModel(),
             'indicadores' => new IndicadorVendaModel(),
+            'farol_mapas' => new FarolMapaModel(),
+            'farol_buffer' => new FarolBufferModel(),
         };
     }
 }

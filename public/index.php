@@ -13,6 +13,8 @@ use App\Core\Session;
 
 $config = require dirname(__DIR__) . '/config/config.php';
 
+date_default_timezone_set($config['app']['timezone'] ?: 'America/Sao_Paulo');
+
 // Exibição de erros controlada pelo ambiente (Manual de Segurança, Seção 6.8).
 if ($config['app']['env'] === 'production') {
     ini_set('display_errors', '0');

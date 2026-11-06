@@ -50,6 +50,8 @@ return [
         'url' => env('APP_URL', ''),
         'session_name' => env('APP_SESSION_NAME', 'cobeb_session'),
         'session_idle_timeout' => (int) env('APP_SESSION_IDLE_TIMEOUT', 1800),
+        // Fuso das datas do sistema (data de entrega padrão, horários exibidos). Sem isso o PHP usa UTC.
+        'timezone' => env('APP_TIMEZONE', 'America/Sao_Paulo'),
     ],
     'database' => [
         'host' => env('DB_HOST', '127.0.0.1'),

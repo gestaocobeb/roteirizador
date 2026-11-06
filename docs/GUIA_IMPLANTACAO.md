@@ -57,6 +57,7 @@ Editar `.env` com as credenciais reais do ambiente (nunca versionar o `.env` rea
 Para o **Esqueci minha senha** funcionar, preencher também:
 
 - `APP_URL`: endereço público completo pelo qual os usuários acessam o sistema (ex.: `https://portal.cobeb.com.br/roteirizador`). É o início do link enviado por e-mail.
+- `APP_TIMEZONE`: fuso horário das datas do sistema. O padrão é `America/Sao_Paulo`; sem ele, o PHP usaria UTC (3 horas adiantado).
 - `MAIL_HOST`, `MAIL_PORT`, `MAIL_ENCRYPTION` (`tls`, `ssl` ou vazio), `MAIL_USERNAME`, `MAIL_PASSWORD`, `MAIL_FROM_ADDRESS` e `MAIL_FROM_NAME`: servidor SMTP da COBEB (solicitar ao TI).
 
 Sem esses valores o sistema funciona normalmente, mas o link não é enviado (o erro fica em `storage/logs`). Nesse caso, a senha é trocada pelo administrador na tela **Usuários**.
@@ -103,34 +104,3 @@ Garantir permissão de escrita para o usuário do Apache em `storage/logs`, `sto
 ## 9. Homologação
 
 Antes da publicação em produção, submeter o sistema ao **COBEB Validator**. O sistema precisa obter classificação Nível A ou Nível B (ver Manual de Desenvolvimento, Seção 8).
-
-## 10. Implantação alternativa via Docker (Dockhand)
-
-Opcional: o caminho oficial continua sendo o XAMPP descrito acima. O Docker **não** é dependência de execução do sistema; os arquivos `Dockerfile`, `docker-compose.yml` e `docker/` apenas empacotam o mesmo código (PHP 8.2 + Apache com DocumentRoot em `public/` + MariaDB utf8mb4).
-
-No Dockhand, criar um **Git stack** com:
-
-| Campo | Valor |
-|---|---|
-| Stack name | `roteirizador` |
-| Repository | `https://github.com/gestaocobeb/roteirizador.git` (branch `main`) |
-| Compose file path | `docker-compose.yml` |
-| Additional env file / Context directory | em branco |
-
-Variáveis de ambiente do stack:
-
-| Variável | Obrigatória | Descrição |
-|---|---|---|
-| `DB_PASSWORD` | sim | Senha do usuário `roteirizador` no MariaDB |
-| `DB_ROOT_PASSWORD` | sim | Senha do root do MariaDB |
-| `PORTA_EXTERNA` | não (padrão `8090`) | Porta publicada no host |
-| `APP_HTTPS` | não (padrão `false`) | `true` se o acesso final for por HTTPS |
-| `APP_BASE_PATH` | não | Base path do Proxy Reverso do Portal (ex.: `/roteirizador`) |
-| `APP_URL` | para o "Esqueci minha senha" | Endereço público completo (ex.: `https://portal.cobeb.com.br/roteirizador`) |
-| `MAIL_HOST`, `MAIL_PORT`, `MAIL_ENCRYPTION`, `MAIL_USERNAME`, `MAIL_PASSWORD`, `MAIL_FROM_ADDRESS`, `MAIL_FROM_NAME` | para o "Esqueci minha senha" | SMTP da COBEB (ver seção 4) |
-
-Observações:
-
-- O `database/database.sql` é executado automaticamente **somente na primeira subida** (volume `dados` vazio). Alterações posteriores no script precisam ser aplicadas manualmente no banco.
-- Os dados ficam nos volumes `dados` (MariaDB) e `storage` (logs e arquivos temporários). Não remova os volumes ao recriar o stack.
-- Após subir, acessar `/primeiro-acesso` para criar o administrador (seção 7).
