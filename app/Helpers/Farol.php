@@ -19,11 +19,12 @@ class Farol
     ];
 
     /**
-     * Tipo do mapa: placa "REC..." = recarga; carga "Freteiro" = Spot; demais = FF.
+     * Tipo do mapa: placa "REC..." ou placa repetida (2º mapa em diante da mesma
+     * placa no arquivo) = recarga; carga "Freteiro" = Spot; demais = FF.
      */
-    public static function tipoMapa(string $placa, string $carga): string
+    public static function tipoMapa(string $placa, string $carga, bool $placaRepetida = false): string
     {
-        if (str_starts_with(strtoupper(trim($placa)), 'REC')) {
+        if ($placaRepetida || str_starts_with(strtoupper(trim($placa)), 'REC')) {
             return self::RECARGA;
         }
 
@@ -43,8 +44,12 @@ class Farol
         }
 
         $data = null;
+        $placasVistas = [];
+        // $mapas vem na ordem do arquivo: o 1º mapa de cada placa segue a regra normal; os seguintes são recarga.
         foreach ($mapas as $mapa) {
-            $tipo = self::tipoMapa((string) $mapa['placa'], (string) $mapa['carga']);
+            $placa = strtoupper(trim((string) $mapa['placa']));
+            $tipo = self::tipoMapa($placa, (string) $mapa['carga'], isset($placasVistas[$placa]));
+            $placasVistas[$placa] = true;
             $grupos[$tipo]['mapas'][] = $mapa;
             $grupos[$tipo]['quantidade']++;
             $grupos[$tipo]['entregas'] += (int) $mapa['entregas'];

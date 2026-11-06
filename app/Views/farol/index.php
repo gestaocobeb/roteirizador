@@ -227,7 +227,7 @@ if (count($farois) > 1) {
             <div class="card-header"><strong>Como o Farol é calculado</strong></div>
             <div class="card-body small">
                 <ul class="mb-0">
-                    <li><strong>Mapas (03.11.49.02):</strong> placa começando com REC = recarga; carga "Freteiro" = Spot; os demais = FF.</li>
+                    <li><strong>Mapas (03.11.49.02):</strong> placa repetida: o 1º mapa da placa (na ordem do arquivo) segue a regra normal e os seguintes (2º, 3º, 4º...) são recarga. Placa começando com REC = recarga; carga "Freteiro" = Spot; os demais = FF.</li>
                     <li><strong>Clientes roteirizados:</strong> soma das entregas de todos os mapas (FF + Spot + recarga). <strong>Peso:</strong> soma do total de peso.</li>
                     <li><strong>Cx/viagem:</strong> total de caixas do tipo ÷ quantidade de mapas do tipo.</li>
                     <li><strong>Buffer (Cora):</strong> pedidos com Tipo buffer = REPROGRAMADO, sem as reposições. Volume = soma do volume hectolitro; clientes = clientes distintos.</li>

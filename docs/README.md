@@ -157,7 +157,7 @@ Regras (`app/Helpers/Farol.php`):
 
 | Indicador | Cálculo |
 |---|---|
-| Tipo do mapa | Placa começando com `REC` = Recarga; carga "Freteiro" = Spot; demais = FF |
+| Tipo do mapa | Placa repetida no arquivo: o 1º mapa da placa segue a regra normal e os seguintes (2º, 3º, 4º...) = Recarga. Placa começando com `REC` = Recarga; carga "Freteiro" = Spot; demais = FF |
 | Volume buffer (HL) | Soma do volume hectolitro dos pedidos com Tipo buffer = REPROGRAMADO, exceto Tipo pedido = REPOSIÇÃO (a planilha somava também as reposições) |
 | Volume roteirizado (HL) | Volume vendido − volume buffer |
 | Clientes roteirizados | Soma das "Entregas" de todos os mapas (FF + Spot + Recarga) |
@@ -166,7 +166,7 @@ Regras (`app/Helpers/Farol.php`):
 | Mapas FF / Spot / Recarga programada | Quantidade de mapas de cada tipo |
 | Cx/viagem FF e Spot | Total de caixas do tipo ÷ mapas do tipo |
 
-Diferença da planilha: na aba "R. 03.11.49.02", as placas eram listadas à mão em FF, SPOT e RECARGA. No sistema, a classificação é automática. Uma placa com mais de um mapa no dia soma todos os mapas (o PROCV considerava só o primeiro). Conferido com a planilha de 06/11/2026: volume vendido, clientes roteirizados, peso, mapas e cx/viagem idênticos nas três revendas. O buffer difere da planilha onde havia reposição reprogramada (LP: 21,19 HL no sistema e 21,41 HL na planilha).
+Diferença da planilha: na aba "R. 03.11.49.02", as placas eram listadas à mão em FF, SPOT e RECARGA. No sistema, a classificação é automática. Uma placa com mais de um mapa no dia conta o 1º como FF (ou Spot, se for Freteiro) e os demais como recarga. Conferido com a planilha de 06/11/2026: volume vendido, clientes roteirizados, peso, mapas e cx/viagem idênticos nas três revendas. O buffer difere da planilha onde havia reposição reprogramada (LP: 21,19 HL no sistema e 21,41 HL na planilha).
 
 ## Bees Loat (CSV de dias de entrega do BEES)
 
