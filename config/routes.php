@@ -6,6 +6,7 @@ use App\Controllers\BeesLoatController;
 use App\Controllers\ConsultaController;
 use App\Controllers\CriticaController;
 use App\Controllers\FarolController;
+use App\Controllers\TirinhaController;
 use App\Controllers\HomeController;
 use App\Controllers\ImportacaoController;
 use App\Controllers\PrioridadeController;
@@ -82,6 +83,10 @@ $router->post('/bees-loat/gerar', [BeesLoatController::class, 'gerar'], $logadoP
 $router->get('/farol', [FarolController::class, 'index'], $logistica);
 $router->post('/farol/dados', [FarolController::class, 'salvar'], $logisticaPost);
 $router->get('/farol/buffer/{revenda}', [FarolController::class, 'exportarBuffer'], $logistica);
+
+// Tirinha: tirinhas de mapa para impressão (Logística; nada é gravado)
+$router->get('/tirinha', [TirinhaController::class, 'index'], $logistica);
+$router->post('/tirinha/gerar', [TirinhaController::class, 'gerar'], $logisticaPost);
 
 // Administração de usuários
 $router->get('/usuarios', [UsuarioController::class, 'index'], $admin);

@@ -67,9 +67,9 @@ O sistema é separado por revenda em todas as telas: **PM**, **LP** e **AB**.
 
 ### Abas liberadas por usuário
 
-Na tela **Usuários**, o administrador marca quais abas (Crítica GOD, Prioridade, Consulta do dia, Troca, Aprovação troca, Importações, Setores, Bees Loat, Farol, Usuários) cada usuário acessa. Funciona assim:
+Na tela **Usuários**, o administrador marca quais abas (Crítica GOD, Prioridade, Consulta do dia, Troca, Aprovação troca, Importações, Setores, Bees Loat, Farol, Tirinha, Usuários) cada usuário acessa. Funciona assim:
 
-- O perfil é o limite: Importações, Setores, Aprovação troca e Farol só podem ser liberados para Logística, e Usuários só para Administrador. Abas fora do perfil são descartadas ao salvar.
+- O perfil é o limite: Importações, Setores, Aprovação troca, Farol e Tirinha só podem ser liberados para Logística, e Usuários só para Administrador. Abas fora do perfil são descartadas ao salvar.
 - O Administrador tem sempre todas as abas.
 - Uma aba não liberada some do menu e do painel, e qualquer rota dela (GET ou POST) responde 403. O bloqueio é feito pelo `PerfilMiddleware`, que identifica a aba pelo primeiro segmento da URL.
 - A lista de abas fica em `UsuarioModel::ABAS`. Uma tela nova vira aba quando é adicionada a essa lista.
@@ -190,6 +190,26 @@ A aba recebe o **Relatório Bees** (export do BEES em `.csv`, separado por `;`) 
    - Com vários arquivos da rotina 0105070402, os dias de um mesmo cliente se somam.
 
 As colunas são localizadas pelo nome do cabeçalho. Se uma delas faltar, a tela avisa qual é. A saída mantém o formato do Relatório Bees: UTF-8, `;`, sem aspas.
+
+## Tirinha (substitui a planilha "TIRINHA PM")
+
+A aba monta uma tirinha por mapa para entregar ao motorista, igual à aba "Plan1" da planilha, e imprime pelo botão **Imprimir** (cada tirinha fica inteira na página, com as colunas alinhadas para recortar). Nada é gravado no banco; as regras ficam em `app/Helpers/Tirinha.php`. Acesso: Logística e Administrador.
+
+| Coluna | Origem |
+|---|---|
+| Mapas, Placas, KM planejado, Tempo | **03.11.49.02** (arquivo .csv.inf do Promax, .csv ou .xlsx, o que ia na aba "Promax"): Nro do Mapa, Placa, KM Prev. e Tempo Prev. (+almoço). Define as tirinhas e a ordem. |
+| Inicial, Final, Emitidas | **03.02.31 colado da tela**: nota inicial, nota final e a 8ª coluna a partir do mapa (o mesmo `PROCV(...;notas;8)` da planilha) |
+| Boleto | **03.02.37**: notas do mapa com "Nr Tit. Bco" preenchido (aba "03.02.37 CTRL+T") |
+| Cartão crédito | **03.02.37** com a coluna "Cond. pagt": notas do mapa com condição **400** (aba "03.02.37 Cond.pgt 400") |
+| Pix | **03.02.37** com a coluna "Cond. pagt": notas do mapa com condição **850** (aba "03.02.37 Cond.pgt 850") |
+
+- **Revenda:** escolhida na tela (PM, LP ou AB; o usuário da Logística restrito a uma revenda só vê a dele). Só os mapas do 03.11.49.02 com a UNB da revenda (PM = 1, LP = 2, AB = 5) viram tirinha; os de outras revendas são ignorados com aviso. O 03.02.31 e o 03.02.37 são cruzados pelo número do mapa, então ficam restritos aos mesmos mapas.
+- **Imagem do cartão de crédito (WhatsApp):** depois de gerar, o botão verde baixa (ou compartilha, no celular com HTTPS) um PNG no padrão do Farol só com **mapa e placa** dos mapas que têm nota de Cond. pagt 400, um por linha, na ordem das tirinhas, e o total de mapas. Usa o mesmo desenho de tabela de `public/assets/js/farol.js`.
+- O 03.02.37 aceita vários arquivos de uma vez (o de boleto e o de condição de pagamento). Uma nota que aparece em mais de um arquivo, ou em várias linhas, conta uma vez.
+- Linhas coladas do 03.02.31 que não começam com o número do mapa (cabeçalho, total) são ignoradas. O mapa pode vir com ponto de milhar ("398.891").
+- Tempo aceita "03:15", "03:15:00" ou a fração de dia do Excel.
+- Sem o 03.02.31 ou o 03.02.37 (ou sem a coluna "Cond. pagt"), as colunas correspondentes ficam em branco e a tela avisa.
+- Conferido com o exemplo de 09/11/2026 (31 mapas): boleto 362, cartão 5 e pix 106, iguais à planilha; 28 tirinhas idênticas. Diferenças: nos mapas 398918, 398919 e 398920 a planilha mostra `#N/A` em Inicial/Final/Emitidas (fórmula fora do intervalo "notas"), e o sistema mostra os valores do 03.02.31; no mapa 398918 o tempo foi digitado à mão na planilha (03:00) por cima do Promax (07:26), e o sistema usa sempre o 03.11.49.02.
 
 ## Estrutura específica do sistema
 

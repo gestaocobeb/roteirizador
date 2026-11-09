@@ -628,3 +628,70 @@ tfoot.table-light th {
         max-height: none;
     }
 }
+
+/* Tirinha: uma faixa por mapa, pronta para recortar (igual à planilha TIRINHA PM). */
+.tirinha {
+    width: 100%;
+    table-layout: fixed;
+    border-collapse: collapse;
+    margin-bottom: 1rem;
+    background-color: #fff;
+    text-align: center;
+    break-inside: avoid;
+    page-break-inside: avoid;
+}
+
+.tirinha th,
+.tirinha td {
+    border: 2px solid #000;
+    padding: .35rem .25rem;
+}
+
+.tirinha th {
+    background-color: #e9ecef;
+    font-size: .8rem;
+    text-transform: uppercase;
+}
+
+.tirinha td {
+    font-size: 1.35rem;
+}
+
+/* Impressão da Tirinha sempre em retrato (A4); página nomeada para não afetar outras telas. */
+@page tirinha {
+    size: A4 portrait;
+    margin: 10mm;
+}
+
+@media print {
+    .tirinhas {
+        page: tirinha;
+        margin: 0 !important;
+    }
+
+    .tirinha th {
+        font-size: 7.5pt;
+        padding: 1.5mm .5mm;
+    }
+
+    .tirinha td {
+        font-size: 13pt;
+        padding: 2.5mm .5mm;
+        white-space: nowrap;
+    }
+
+    .tirinha {
+        margin-bottom: 0;
+    }
+
+    /* Sem espaço entre as tirinhas: a borda de uma encosta na da outra. */
+    .tirinha + .tirinha {
+        margin-top: -2px;
+    }
+
+    .tirinha th {
+        background-color: #e9ecef !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+}

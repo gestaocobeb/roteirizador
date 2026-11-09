@@ -2,6 +2,8 @@
  * Farol: gera imagens (PNG) para envio no WhatsApp.
  * - Botão #baixarImagemFarol: painel do dia (cards das revendas e resumo).
  * - Botões [data-imagem-buffer="PM"]: tabela do buffer reprogramado da revenda.
+ *   A mesma tabela serve a outras telas (ex.: Tirinha, notas no cartão), que
+ *   informam "colunas" e "arquivo" próprios.
  * Desenho em <canvas> com JavaScript puro; os dados vêm formatados do PHP
  * (script#dadosImagemFarol). No celular com HTTPS abre o compartilhamento
  * direto; nos demais casos baixa o arquivo.
@@ -214,8 +216,8 @@
 
         const { canvas, ctx } = await novaImagem(altura, buffer.titulo, dados.data);
 
-        // Colunas: [título, largura relativa, alinhamento].
-        const colunas = [
+        // Colunas: [título, largura relativa, alinhamento]. Outras telas (Tirinha) mandam as próprias.
+        const colunas = buffer.colunas || [
             ['Pedido', 0.09, 'left'],
             ['Cliente', 0.09, 'left'],
             ['Nome fantasia', 0.27, 'left'],
@@ -323,7 +325,7 @@
         }
         ligar(botao, async () => entregar(
             await desenharBuffer(revenda),
-            `buffer-${revenda.toLowerCase()}-${sufixoData}.png`,
+            dados.buffers[revenda].arquivo || `buffer-${revenda.toLowerCase()}-${sufixoData}.png`,
             dados.buffers[revenda].titulo
         ));
     });
