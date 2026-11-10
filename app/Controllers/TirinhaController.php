@@ -3,9 +3,11 @@
 namespace App\Controllers;
 
 use App\Core\Logger;
+use App\Core\Session;
 use App\Helpers\Cte;
 use App\Helpers\Revenda;
 use App\Helpers\Tirinha;
+use App\Helpers\TirinhaExcel;
 use App\Models\CteMapaModel;
 
 /**
@@ -85,11 +87,38 @@ class TirinhaController extends BaseController
         Logger::info(sprintf('Tirinha %s gerada por %s: %d mapas.', $revenda, $this->usuario()['email'] ?? '?', count($mapas)));
 
         $tirinhas = Tirinha::montar($mapas, $notas, $pagamentos);
+        $dataEntrega = max(array_column($mapas, 'data_entrega') ?: [null]);
+
+        // Últimas tirinhas geradas, para o botão "Baixar Excel" (nada vai para o banco).
+        Session::set('tirinha_excel', ['revenda' => $revenda, 'data' => $dataEntrega, 'tirinhas' => $tirinhas]);
 
         $this->view('tirinha/index', array_merge($this->dadosTela($tirinhas, $textoNotas, $avisos, $revenda), [
             'cartao' => $pagamentos && $pagamentos['temCondicao'] ? $this->notasNoCartao($tirinhas, $pagamentos['cartaoNotas']) : null,
-            'dataEntrega' => max(array_column($mapas, 'data_entrega') ?: [null]),
+            'dataEntrega' => $dataEntrega,
         ]));
+    }
+
+    /**
+     * Baixa as últimas tirinhas geradas em .xlsx, no formato da aba Plan1 da planilha.
+     */
+    public function exportar(): void
+    {
+        $ultima = Session::get('tirinha_excel');
+
+        if (!is_array($ultima) || empty($ultima['tirinhas']) || !$this->podeAcessarRevenda($ultima['revenda'] ?? null)) {
+            $this->voltar('tirinha', 'warning', 'Gere as tirinhas antes de baixar o Excel.');
+        }
+
+        $conteudo = TirinhaExcel::gerar($ultima['tirinhas']);
+        $nome = 'tirinha-' . strtolower($ultima['revenda']) . '-' . ($ultima['data'] ?: date('Y-m-d')) . '.xlsx';
+
+        Logger::info("Tirinha {$ultima['revenda']} baixada em Excel por " . ($this->usuario()['email'] ?? '?'));
+
+        header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        header('Content-Disposition: attachment; filename="' . $nome . '"');
+        header('Content-Length: ' . strlen($conteudo));
+        echo $conteudo;
+        exit;
     }
 
     /**

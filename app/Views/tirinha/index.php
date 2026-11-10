@@ -41,6 +41,9 @@ if ($tirinhas && $cartao !== null) {
         <button type="button" class="btn btn-primary" onclick="window.print()">
             <i class="bi bi-printer"></i> Imprimir <?= e((string) count($tirinhas)) ?> tirinha(s) de <?= e((string) $revenda) ?>
         </button>
+        <a class="btn btn-outline-success" href="<?= e(base_url('tirinha/excel')) ?>">
+            <i class="bi bi-file-earmark-excel"></i> Baixar Excel
+        </a>
     <?php endif; ?>
     <?php if ($imagem): ?>
         <button type="button" class="btn btn-success" data-imagem-buffer="CARTAO">

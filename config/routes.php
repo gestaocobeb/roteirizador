@@ -88,6 +88,7 @@ $router->get('/farol/buffer/{revenda}', [FarolController::class, 'exportarBuffer
 // Tirinha: tirinhas de mapa para impressão (Logística; nada é gravado)
 $router->get('/tirinha', [TirinhaController::class, 'index'], $logistica);
 $router->post('/tirinha/gerar', [TirinhaController::class, 'gerar'], $logisticaPost);
+$router->get('/tirinha/excel', [TirinhaController::class, 'exportar'], $logistica);
 
 // CTE: planilha do CT-e por revenda (Logística); o 03.11.49.02 da Tirinha também alimenta
 $router->get('/cte', [CteController::class, 'index'], $logistica);
