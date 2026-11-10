@@ -26,7 +26,7 @@ class Importador
         'vendas_setor' => 'Volume vendido por setor (Promax 03.05.09)',
         'indicadores' => 'Indicadores de vendas (Promax 17.03)',
         'farol_mapas' => 'Farol - Mapas roteirizados (Promax 03.11.49.02)',
-        'farol_buffer' => 'Farol - Buffer do Cora (Tipo buffer)',
+        'farol_buffer' => 'Farol - Pedidos do Cora (pedidos_roteirizacao)',
     ];
 
     /**
@@ -80,6 +80,7 @@ class Importador
                 'razao_social' => 'razao social',
                 'nome_fantasia' => 'nome fantasia',
                 'setor_codigo' => 'cod setor',
+                'setor_descricao' => 'descricao setor',
                 'cidade' => 'cidade',
                 'bairro' => 'bairro',
                 'dia_visita' => 'frequencia visita',
@@ -192,21 +193,20 @@ class Importador
             ],
             'obrigatorios' => ['placa', 'carga', 'entregas', 'caixas', 'peso'],
         ],
-        // Mesmo export do Cora, usado só pelo Farol (com a coluna "Tipo buffer"; reposições são gravadas, mas não contam no buffer).
+        // Cora "pedidos_roteirizacao" (um registro por item), usado só pelo Farol. Situação do pedido
+        // (coluna K): roteirizado, buffer (REPROGRAMADO) ou cancelado; volume = HectoLitro (coluna W).
         'farol_buffer' => [
             'abas' => ['CORA', 'Cora'],
             'campos' => [
-                'unidade_venda' => 'cod unidade venda',
-                'numero_pedido' => 'numero pedido',
-                'tipo_pedido' => 'tipo pedido',
-                'cliente_codigo' => 'cod cliente',
-                'nome_fantasia' => 'nome fantasia',
-                'tipo_buffer' => 'tipo buffer',
-                'volume_hl' => 'volume hectolitro',
-                'setor_codigo' => 'cod setor',
-                'setor_descricao' => 'desc setor',
+                'unidade_venda' => 'codigofilialvenda',
+                'numero_pedido' => 'pedido',
+                'cliente_codigo' => 'cliente',
+                'nome_fantasia' => 'descricaocliente',
+                'situacao_pedido' => 'situacaopedido',
+                'tipo_buffer' => 'tipobuffer',
+                'volume_hl' => 'hectolitro',
             ],
-            'obrigatorios' => ['numero_pedido', 'cliente_codigo', 'tipo_buffer', 'volume_hl'],
+            'obrigatorios' => ['unidade_venda', 'numero_pedido', 'cliente_codigo', 'situacao_pedido', 'volume_hl'],
         ],
     ];
 
@@ -564,6 +564,7 @@ class Importador
                 'razao_social' => self::texto($b['razao_social'] ?? '', 150),
                 'nome_fantasia' => self::texto($b['nome_fantasia'] ?? '', 150),
                 'setor_codigo' => $setor,
+                'setor_descricao' => self::texto($b['setor_descricao'] ?? '', 100) ?: null,
                 'cidade' => self::texto($b['cidade'] ?? '', 100),
                 'bairro' => self::texto($b['bairro'] ?? '', 100),
                 'dia_visita' => self::texto($b['dia_visita'] ?? '', 40),
@@ -715,9 +716,9 @@ class Importador
     }
 
     /**
-     * Buffer do Cora para o Farol: um registro por pedido com o "Tipo buffer"
-     * (PRESERVADO, REPROGRAMADO...) e o volume (HL) somado. Grava também as reposições;
-     * o Farol considera só os REPROGRAMADO que não são reposição (FarolBufferModel).
+     * Pedidos do Cora (pedidos_roteirizacao) para o Farol: um registro por pedido e
+     * situação (ENVIADO_HUB_FATURAMENTO, AGUARDANDO_ROTEIRIZACAO, REPROGRAMADO, CANCELADO...)
+     * com o HectoLitro dos itens somado. Os volumes do Farol saem de FarolBufferModel.
      */
     private function transformarFarolBuffer(array $brutos): array
     {
@@ -726,23 +727,26 @@ class Importador
         foreach ($brutos as $b) {
             $cliente = self::codigo($b['cliente_codigo'] ?? '');
             $pedido = self::texto($b['numero_pedido'] ?? '', 30);
+            $situacao = strtoupper(self::texto($b['situacao_pedido'] ?? '', 40));
 
-            if ($cliente === null || $pedido === '') {
+            if ($cliente === null || $pedido === '' || $situacao === '') {
                 continue;
             }
 
             $pedido = is_numeric($pedido) ? (string) (int) $pedido : $pedido;
-            $pedidos[$pedido] ??= [
+            $chave = $pedido . '|' . $situacao;
+            $pedidos[$chave] ??= [
                 'numero_pedido' => $pedido,
                 'cliente_codigo' => $cliente,
                 'nome_fantasia' => self::texto($b['nome_fantasia'] ?? '', 150) ?: null,
-                'tipo_pedido' => self::texto($b['tipo_pedido'] ?? '', 40) ?: null,
+                'tipo_pedido' => null,
+                'situacao_pedido' => $situacao,
                 'tipo_buffer' => strtoupper(self::texto($b['tipo_buffer'] ?? '', 30)),
-                'setor_codigo' => self::codigo($b['setor_codigo'] ?? ''),
-                'setor_descricao' => self::texto($b['setor_descricao'] ?? '', 100) ?: null,
+                'setor_codigo' => null,
+                'setor_descricao' => null,
                 'volume_hl' => 0.0,
             ];
-            $pedidos[$pedido]['volume_hl'] += self::numero($b['volume_hl'] ?? '');
+            $pedidos[$chave]['volume_hl'] += self::numero($b['volume_hl'] ?? '');
         }
 
         return array_values(array_map(function (array $p): array {
@@ -912,10 +916,15 @@ class Importador
 
     /**
      * Converte um código (cliente, setor, mesa) em inteiro positivo, ou null.
+     * Aceita ponto de milhar do Promax ("45.554" = 45554, como no 01.20.11).
      */
     public static function codigo(string $valor): ?int
     {
-        $valor = str_replace(',', '.', trim($valor));
+        $valor = trim($valor);
+        if (preg_match('/^\d{1,3}(\.\d{3})+$/', $valor)) {
+            $valor = str_replace('.', '', $valor);
+        }
+        $valor = str_replace(',', '.', $valor);
 
         if ($valor === '' || !is_numeric($valor)) {
             return null;

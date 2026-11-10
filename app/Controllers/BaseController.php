@@ -321,4 +321,54 @@ abstract class BaseController extends Controller
     {
         return (new MesaModel())->codigos($this->revendaSelecionada());
     }
+    /** MIME reais aceitos nos uploads de relatório (.csv/.inf/.txt e .xlsx/.xlsm). */
+    private const MIMES_TEXTO = ['text/plain', 'text/csv', 'application/csv', 'text/x-csv', 'application/vnd.ms-excel'];
+    private const MIMES_XLSX = ['application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'application/vnd.ms-excel.sheet.macroEnabled.12', 'application/zip', 'application/octet-stream'];
+
+    /**
+     * Uploads válidos do campo (simples ou múltiplo), validando extensão e MIME real.
+     * Arquivo inválido volta para $retorno com a mensagem de erro.
+     *
+     * @return array<int, array{caminho: string, extensao: string}> extensao = 'csv' ou 'xlsx' (para o PlanilhaLeitor)
+     */
+    protected function arquivosEnviados(string $campo, array $extensoes, string $retorno): array
+    {
+        $arquivos = $_FILES[$campo] ?? null;
+        if (!$arquivos) {
+            return [];
+        }
+
+        $nomes = (array) $arquivos['name'];
+        $temporarios = (array) $arquivos['tmp_name'];
+        $erros = (array) $arquivos['error'];
+        $finfo = new \finfo(FILEINFO_MIME_TYPE);
+        $validos = [];
+
+        foreach ($nomes as $i => $nome) {
+            if (($erros[$i] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE) {
+                continue;
+            }
+
+            $nome = basename((string) $nome);
+
+            if ($erros[$i] !== UPLOAD_ERR_OK || !is_uploaded_file($temporarios[$i])) {
+                $this->voltar($retorno, 'danger', "Não foi possível receber o arquivo {$nome} (verifique o limite upload_max_filesize).");
+            }
+
+            $extensao = strtolower(pathinfo($nome, PATHINFO_EXTENSION));
+            $mime = $finfo->file($temporarios[$i]);
+            $planilha = in_array($extensao, ['xlsx', 'xlsm'], true);
+            $mimes = $planilha ? self::MIMES_XLSX : self::MIMES_TEXTO;
+
+            if (!in_array($extensao, $extensoes, true) || !in_array($mime, $mimes, true)) {
+                \App\Core\Logger::warning("Upload recusado em {$retorno}: {$nome} com MIME {$mime}");
+                $this->voltar($retorno, 'danger', "O arquivo {$nome} não está num formato aceito (" . implode(', ', $extensoes) . ').');
+            }
+
+            // O leitor trata .inf/.txt como CSV e .xlsm como .xlsx.
+            $validos[] = ['caminho' => $temporarios[$i], 'extensao' => $planilha ? 'xlsx' : 'csv'];
+        }
+
+        return $validos;
+    }
 }

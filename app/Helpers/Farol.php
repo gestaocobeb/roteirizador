@@ -32,11 +32,12 @@ class Farol
     }
 
     /**
-     * @param array      $mapas   Linhas de farol_mapas da revenda
-     * @param array      $buffer  Pedidos reprogramados da revenda
-     * @param float|null $vendido Volume vendido (HL) digitado
+     * @param array      $mapas        Linhas de farol_mapas da revenda
+     * @param array      $buffer       Pedidos REPROGRAMADO do Cora da revenda
+     * @param float|null $roteirizado  HL do Cora em ENVIADO_HUB_FATURAMENTO + AGUARDANDO_ROTEIRIZACAO
+     *                                 (null = arquivo do Cora não importado)
      */
-    public static function calcular(array $mapas, array $buffer, ?float $vendido): array
+    public static function calcular(array $mapas, array $buffer, ?float $roteirizado): array
     {
         $grupos = [];
         foreach (array_keys(self::TIPOS) as $tipo) {
@@ -70,10 +71,10 @@ class Farol
         return [
             'data_entrega' => $data,
             'grupos' => $grupos,
-            'volume_vendido' => $vendido,
+            // Vendido = roteirizado + buffer (ENVIADO_HUB_FATURAMENTO + AGUARDANDO_ROTEIRIZACAO + REPROGRAMADO).
+            'volume_vendido' => $roteirizado !== null ? $roteirizado + $volumeBuffer : null,
             'volume_buffer' => $volumeBuffer,
-            // Na planilha: vendido - buffer.
-            'volume_roteirizado' => $vendido !== null ? $vendido - $volumeBuffer : null,
+            'volume_roteirizado' => $roteirizado,
             'clientes_roteirizados' => array_sum(array_column($grupos, 'entregas')),
             'clientes_buffer' => $clientesBuffer,
             'peso_roteirizado' => array_sum(array_column($grupos, 'peso')),

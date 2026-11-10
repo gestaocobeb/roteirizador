@@ -3,8 +3,10 @@
 namespace App\Controllers;
 
 use App\Core\Logger;
+use App\Helpers\Cte;
 use App\Helpers\Revenda;
 use App\Helpers\Tirinha;
+use App\Models\CteMapaModel;
 
 /**
  * Aba Tirinha: monta as tirinhas de mapa para impressão (substitui a planilha
@@ -14,9 +16,6 @@ class TirinhaController extends BaseController
 {
     /** Limite do texto colado do 03.02.31 (a tela do Promax tem poucos KB). */
     private const LIMITE_TEXTO = 500000;
-
-    private const MIMES_TEXTO = ['text/plain', 'text/csv', 'application/csv', 'text/x-csv', 'application/vnd.ms-excel'];
-    private const MIMES_XLSX = ['application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'application/vnd.ms-excel.sheet.macroEnabled.12', 'application/zip', 'application/octet-stream'];
 
     public function index(): void
     {
@@ -35,11 +34,11 @@ class TirinhaController extends BaseController
 
         $textoNotas = substr((string) $this->input('notas', ''), 0, self::LIMITE_TEXTO);
 
-        $arquivoMapas = $this->arquivos('mapas', ['xlsx', 'xlsm', 'csv', 'inf', 'txt'])[0] ?? null;
+        $arquivoMapas = $this->arquivosEnviados('mapas', ['xlsx', 'xlsm', 'csv', 'inf', 'txt'], 'tirinha')[0] ?? null;
         if (!$arquivoMapas) {
             $this->voltar('tirinha', 'danger', 'Envie o 03.11.49.02 (mapas com placa, KM e tempo previsto).');
         }
-        $arquivos037 = $this->arquivos('pagamentos', ['csv', 'inf', 'txt']);
+        $arquivos037 = $this->arquivosEnviados('pagamentos', ['csv', 'inf', 'txt'], 'tirinha');
 
         try {
             $ignorados = 0;
@@ -59,6 +58,15 @@ class TirinhaController extends BaseController
         $notas = Tirinha::lerNotas($textoNotas);
 
         $avisos = [];
+
+        // O mesmo 03.11.49.02 alimenta a aba CTE da revenda (uma linha por placa).
+        try {
+            $cte = (new CteMapaModel())->importar($revenda, Cte::lerMapas($arquivoMapas['caminho'], $arquivoMapas['extensao'], Revenda::REVENDAS[$revenda]['unb']));
+            $avisos[] = "03.11.49.02 enviado também para a aba CTE de {$revenda} ({$cte} placa(s)).";
+        } catch (\Throwable $e) {
+            Logger::warning('Tirinha: 03.11.49.02 não gravado no CTE: ' . $e->getMessage());
+            $avisos[] = 'Não foi possível enviar este 03.11.49.02 para a aba CTE: ' . ($e instanceof \RuntimeException ? $e->getMessage() : 'erro ao gravar.');
+        }
         if ($ignorados > 0) {
             $avisos[] = "{$ignorados} mapa(s) de outras revendas no 03.11.49.02 foram ignorados (só {$revenda}).";
         }
@@ -115,51 +123,5 @@ class TirinhaController extends BaseController
             'cartao' => null,
             'dataEntrega' => null,
         ];
-    }
-
-    /**
-     * Uploads válidos do campo (simples ou múltiplo), validando extensão e MIME real.
-     *
-     * @return array<int, array{caminho: string, extensao: string}>
-     */
-    private function arquivos(string $campo, array $extensoes): array
-    {
-        $arquivos = $_FILES[$campo] ?? null;
-        if (!$arquivos) {
-            return [];
-        }
-
-        $nomes = (array) $arquivos['name'];
-        $temporarios = (array) $arquivos['tmp_name'];
-        $erros = (array) $arquivos['error'];
-        $finfo = new \finfo(FILEINFO_MIME_TYPE);
-        $validos = [];
-
-        foreach ($nomes as $i => $nome) {
-            if (($erros[$i] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE) {
-                continue;
-            }
-
-            $nome = basename((string) $nome);
-
-            if ($erros[$i] !== UPLOAD_ERR_OK || !is_uploaded_file($temporarios[$i])) {
-                $this->voltar('tirinha', 'danger', "Não foi possível receber o arquivo {$nome} (verifique o limite upload_max_filesize).");
-            }
-
-            $extensao = strtolower(pathinfo($nome, PATHINFO_EXTENSION));
-            $mime = $finfo->file($temporarios[$i]);
-            $planilha = in_array($extensao, ['xlsx', 'xlsm'], true);
-            $mimes = $planilha ? self::MIMES_XLSX : self::MIMES_TEXTO;
-
-            if (!in_array($extensao, $extensoes, true) || !in_array($mime, $mimes, true)) {
-                Logger::warning("Tirinha: upload recusado {$nome} com MIME {$mime}");
-                $this->voltar('tirinha', 'danger', "O arquivo {$nome} não está num formato aceito (" . implode(', ', $extensoes) . ').');
-            }
-
-            // O leitor trata .inf/.txt como CSV e .xlsm como .xlsx.
-            $validos[] = ['caminho' => $temporarios[$i], 'extensao' => $planilha ? 'xlsx' : 'csv'];
-        }
-
-        return $validos;
     }
 }

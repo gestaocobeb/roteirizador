@@ -6,6 +6,7 @@ use App\Controllers\BeesLoatController;
 use App\Controllers\ConsultaController;
 use App\Controllers\CriticaController;
 use App\Controllers\FarolController;
+use App\Controllers\CteController;
 use App\Controllers\TirinhaController;
 use App\Controllers\HomeController;
 use App\Controllers\ImportacaoController;
@@ -87,6 +88,14 @@ $router->get('/farol/buffer/{revenda}', [FarolController::class, 'exportarBuffer
 // Tirinha: tirinhas de mapa para impressão (Logística; nada é gravado)
 $router->get('/tirinha', [TirinhaController::class, 'index'], $logistica);
 $router->post('/tirinha/gerar', [TirinhaController::class, 'gerar'], $logisticaPost);
+
+// CTE: planilha do CT-e por revenda (Logística); o 03.11.49.02 da Tirinha também alimenta
+$router->get('/cte', [CteController::class, 'index'], $logistica);
+$router->post('/cte/importar', [CteController::class, 'importar'], $logisticaPost);
+$router->post('/cte/salvar', [CteController::class, 'salvar'], $logisticaPost);
+$router->get('/cte/exportar/{revenda}', [CteController::class, 'exportar'], $logistica);
+$router->post('/cte/fretes', [CteController::class, 'salvarFrete'], $logisticaPost);
+$router->post('/cte/fretes/{id}/excluir', [CteController::class, 'excluirFrete'], $logisticaPost);
 
 // Administração de usuários
 $router->get('/usuarios', [UsuarioController::class, 'index'], $admin);

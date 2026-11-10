@@ -10,7 +10,7 @@ class ClienteModel extends ImportavelModel
     protected string $table = 'clientes';
 
     protected array $colunasImportacao = [
-        'codigo', 'razao_social', 'nome_fantasia', 'setor_codigo', 'cidade',
+        'codigo', 'razao_social', 'nome_fantasia', 'setor_codigo', 'setor_descricao', 'cidade',
         'bairro', 'dia_visita', 'status_cliente', 'segmento',
     ];
 }

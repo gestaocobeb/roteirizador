@@ -11,8 +11,8 @@ use App\Models\FarolRevendaModel;
 
 /**
  * Aba Farol: painel do dia por revenda (substitui a PLANILHA FAROL).
- * Mapas (03.11.49.02) e buffer (Cora) chegam pela importação; o volume vendido
- * e as observações são digitados aqui.
+ * Mapas (03.11.49.02) e pedidos do Cora (volumes vendido, roteirizado e buffer)
+ * chegam pela importação; as observações são digitadas aqui.
  */
 class FarolController extends BaseController
 {
@@ -24,14 +24,13 @@ class FarolController extends BaseController
 
         $farois = [];
         foreach ($this->revendasPermitidas() as $revenda) {
-            $dados = $digitados->daRevenda($revenda);
-            $reprogramados = $buffer->reprogramados($revenda);
-            $vendido = isset($dados['volume_vendido_hl']) ? (float) $dados['volume_vendido_hl'] : null;
+            $roteirizado = $buffer->volumeRoteirizado($revenda);
+            $reprogramados = $roteirizado !== null ? $buffer->reprogramados($revenda) : [];
 
-            $farois[$revenda] = Farol::calcular($mapas->daRevenda($revenda), $reprogramados, $vendido) + [
-                'digitados' => $dados,
+            $farois[$revenda] = Farol::calcular($mapas->daRevenda($revenda), $reprogramados, $roteirizado) + [
+                'digitados' => $digitados->daRevenda($revenda),
                 'buffer' => $reprogramados,
-                'buffer_importado' => $reprogramados !== [] || $buffer->importado($revenda),
+                'buffer_importado' => $roteirizado !== null,
             ];
         }
 
@@ -46,7 +45,7 @@ class FarolController extends BaseController
 
     /**
      * Baixa o buffer reprogramado da revenda em CSV para Excel (";" e UTF-8 com BOM),
-     * na mesma ordem da tela: por cliente e, dentro do cliente, maior volume primeiro.
+     * igual à tela: uma linha por cliente, com o volume total, por setor, volume e cliente.
      */
     public function exportarBuffer(string $revenda): void
     {
@@ -62,19 +61,19 @@ class FarolController extends BaseController
         $celula = fn ($valor) => preg_match('/^[=+\-@]/', (string) $valor) ? "'" . $valor : (string) $valor;
         $numero = fn ($valor) => number_format((float) $valor, 2, ',', '');
 
-        $linhas = [['Pedido', 'Cliente', 'Nome fantasia', 'Cód. setor', 'Desc. setor', 'Tipo pedido', 'Volume (HL)']];
+        // Uma linha por cliente: pedidos duplicados juntados e volume total do cliente.
+        $linhas = [['Cliente', 'Nome do cliente', 'Cód. setor', 'Desc. setor', 'Pedidos', 'Volume total (HL)']];
         foreach ($pedidos as $p) {
             $linhas[] = [
-                $celula($p['numero_pedido']),
                 (string) $p['cliente_codigo'],
                 $celula($p['nome_fantasia'] ?? ''),
                 (string) ($p['setor_codigo'] ?? ''),
                 $celula($p['setor_descricao'] ?? ''),
-                $celula($p['tipo_pedido'] ?? ''),
+                $celula($p['numero_pedido']),
                 $numero($p['volume_hl']),
             ];
         }
-        $linhas[] = ['Total', '', '', '', '', '', $numero(array_sum(array_column($pedidos, 'volume_hl')))];
+        $linhas[] = ['Total', '', '', '', '', $numero(array_sum(array_column($pedidos, 'volume_hl')))];
 
         $saida = fopen('php://temp', 'r+');
         fwrite($saida, "\xEF\xBB\xBF");
@@ -93,7 +92,8 @@ class FarolController extends BaseController
     }
 
     /**
-     * Grava o volume vendido e as observações de uma revenda.
+     * Grava as observações de Spot e recarga de uma revenda (o volume vendido
+     * agora vem do arquivo do Cora).
      */
     public function salvar(): void
     {
@@ -103,18 +103,11 @@ class FarolController extends BaseController
             $this->voltar('farol', 'danger', 'Selecione uma revenda válida.');
         }
 
-        $volumeTexto = trim((string) $this->input('volume_vendido', ''));
-        $volume = $volumeTexto === '' ? null : Importador::numero($volumeTexto);
-
-        if ($volume !== null && $volume < 0) {
-            $this->voltar('farol', 'danger', 'O volume vendido não pode ser negativo.');
-        }
-
         $texto = fn (string $campo) => mb_substr(trim((string) $this->input($campo, '')), 0, 150) ?: null;
 
-        (new FarolRevendaModel())->salvar($revenda, $volume, $texto('observacao_spot'), $texto('observacao_recarga'), (int) $this->usuario()['id']);
+        (new FarolRevendaModel())->salvar($revenda, $texto('observacao_spot'), $texto('observacao_recarga'), (int) $this->usuario()['id']);
 
-        Logger::info("Farol {$revenda}: volume vendido " . ($volume ?? 'vazio') . ' salvo por ' . $this->usuario()['email']);
+        Logger::info("Farol {$revenda}: observações salvas por " . $this->usuario()['email']);
 
         $this->voltar('farol', 'success', "Dados do Farol de {$revenda} salvos.");
     }

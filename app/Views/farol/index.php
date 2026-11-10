@@ -21,15 +21,15 @@ $imagem = [
 foreach ($farois as $revenda => $f) {
     $imagem['buffers'][$revenda] = [
         'titulo' => 'Buffer reprogramado - ' . $revenda . ' ' . Revenda::nome($revenda),
+        // Uma linha por cliente (pedidos duplicados somados); na imagem vai a quantidade de pedidos.
         'pedidos' => array_map(fn ($p) => [
-            (string) $p['numero_pedido'],
             (string) $p['cliente_codigo'],
             (string) ($p['nome_fantasia'] ?? ''),
             $fmtSetor($p),
-            (string) ($p['tipo_pedido'] ?? ''),
+            (string) $p['pedidos'],
             fmt_hl($p['volume_hl']),
         ], $f['buffer']),
-        'total' => count($f['buffer']) . ' pedido(s), ' . $f['clientes_buffer'] . ' cliente(s), ' . fmt_hl($f['volume_buffer']) . ' HL',
+        'total' => $f['clientes_buffer'] . ' cliente(s), ' . array_sum(array_column($f['buffer'], 'pedidos')) . ' pedido(s), ' . fmt_hl($f['volume_buffer']) . ' HL',
     ];
     $imagem['revendas'][] = [
         'titulo' => $revenda . ' - ' . Revenda::nome($revenda),
@@ -86,7 +86,7 @@ if (count($farois) > 1) {
                         <tbody>
                             <tr>
                                 <th class="ps-3">Volume vendido (HL)</th>
-                                <td class="text-end pe-3"><?= $f['volume_vendido'] === null ? '<span class="text-muted">informar</span>' : e(fmt_hl($f['volume_vendido'])) ?></td>
+                                <td class="text-end pe-3"><?= $f['volume_vendido'] === null ? '<span class="text-muted">importar</span>' : e(fmt_hl($f['volume_vendido'])) ?></td>
                             </tr>
                             <tr>
                                 <th class="ps-3">Volume roteirizado (HL)</th>
@@ -145,11 +145,6 @@ if (count($farois) > 1) {
                     <form method="post" action="<?= e(base_url('farol/dados')) ?>" class="row g-2">
                         <?= csrf_field() ?>
                         <input type="hidden" name="revenda" value="<?= e($revenda) ?>">
-                        <div class="col-12">
-                            <label class="form-label small mb-0" for="vendido-<?= e($revenda) ?>">Volume vendido (HL) &mdash; Promax 03.01.47.01, Quebra 1: Geral</label>
-                            <input type="number" step="0.01" min="0" class="form-control form-control-sm" id="vendido-<?= e($revenda) ?>" name="volume_vendido"
-                                   value="<?= e(isset($f['digitados']['volume_vendido_hl']) ? (string) (float) $f['digitados']['volume_vendido_hl'] : '') ?>">
-                        </div>
                         <div class="col-6">
                             <input type="text" maxlength="150" class="form-control form-control-sm" name="observacao_spot" placeholder="Obs. Spot (ex.: 1 VAN)"
                                    value="<?= e($f['digitados']['observacao_spot'] ?? '') ?>">
@@ -230,8 +225,8 @@ if (count($farois) > 1) {
                     <li><strong>Mapas (03.11.49.02):</strong> placa repetida: o 1º mapa da placa (na ordem do arquivo) segue a regra normal e os seguintes (2º, 3º, 4º...) são recarga. Placa começando com REC = recarga; carga "Freteiro" = Spot; os demais = FF.</li>
                     <li><strong>Clientes roteirizados:</strong> soma das entregas de todos os mapas (FF + Spot + recarga). <strong>Peso:</strong> soma do total de peso.</li>
                     <li><strong>Cx/viagem:</strong> total de caixas do tipo ÷ quantidade de mapas do tipo.</li>
-                    <li><strong>Buffer (Cora):</strong> pedidos com Tipo buffer = REPROGRAMADO, sem as reposições. Volume = soma do volume hectolitro; clientes = clientes distintos.</li>
-                    <li><strong>Volume roteirizado:</strong> volume vendido (digitado) − volume buffer.</li>
+                    <li><strong>Volumes (Cora, pedidos_roteirizacao):</strong> soma do HectoLitro (coluna W) pela Situação do pedido (coluna K). <strong>Roteirizado:</strong> ENVIADO_HUB_FATURAMENTO + AGUARDANDO_ROTEIRIZACAO. <strong>Buffer:</strong> REPROGRAMADO. <strong>Vendido:</strong> as três juntas (CANCELADO não entra).</li>
+                    <li><strong>Clientes buffer:</strong> clientes distintos dos pedidos REPROGRAMADO. O setor vem da base de clientes (ou da última importação do Cora da Crítica).</li>
                     <li>Cada importação substitui os dados da revenda; o histórico fica em Importações.</li>
                 </ul>
             </div>
@@ -287,7 +282,7 @@ if (count($farois) > 1) {
                 </div>
 
                 <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mt-2 mb-2">
-                    <h2 class="h6 mb-0">Buffer reprogramado <span class="badge text-bg-secondary"><?= e((string) count($f['buffer'])) ?></span></h2>
+                    <h2 class="h6 mb-0">Buffer reprogramado <span class="badge text-bg-secondary"><?= e((string) count($f['buffer'])) ?> cliente(s)</span></h2>
                     <?php if ($f['buffer']): ?>
                         <div class="d-flex flex-wrap gap-2">
                             <button type="button" class="btn btn-sm btn-success" data-imagem-buffer="<?= e($revenda) ?>">
@@ -303,16 +298,15 @@ if (count($farois) > 1) {
                     <div class="table-responsive">
                         <table class="table table-sm table-striped mb-0">
                             <thead>
-                                <tr><th>Pedido</th><th>Cliente</th><th>Nome fantasia</th><th>Setor</th><th>Tipo pedido</th><th class="text-end">Volume (HL)</th></tr>
+                                <tr><th>Cliente</th><th>Nome do cliente</th><th>Setor</th><th>Pedidos</th><th class="text-end">Volume total (HL)</th></tr>
                             </thead>
                             <tbody>
                                 <?php foreach ($f['buffer'] as $pedido): ?>
                                     <tr>
-                                        <td><?= e($pedido['numero_pedido']) ?></td>
                                         <td><?= e((string) $pedido['cliente_codigo']) ?></td>
                                         <td><?= e($pedido['nome_fantasia'] ?? '') ?></td>
                                         <td><?= e($fmtSetor($pedido)) ?></td>
-                                        <td><?= e($pedido['tipo_pedido'] ?? '') ?></td>
+                                        <td class="small"><?= e($pedido['numero_pedido']) ?></td>
                                         <td class="text-end"><?= e(fmt_hl($pedido['volume_hl'])) ?></td>
                                     </tr>
                                 <?php endforeach; ?>

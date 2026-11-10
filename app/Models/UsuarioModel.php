@@ -30,6 +30,7 @@ class UsuarioModel extends Model
         'bees-loat' => ['rotulo' => 'Bees Loat', 'icone' => 'bi-box-seam', 'perfis' => ['admin', 'logistica', 'comercial']],
         'farol' => ['rotulo' => 'Farol', 'icone' => 'bi-stoplights', 'perfis' => ['admin', 'logistica']],
         'tirinha' => ['rotulo' => 'Tirinha', 'icone' => 'bi-scissors', 'perfis' => ['admin', 'logistica']],
+        'cte' => ['rotulo' => 'CTE', 'icone' => 'bi-receipt', 'perfis' => ['admin', 'logistica']],
         'usuarios' => ['rotulo' => 'Usuários', 'icone' => 'bi-people', 'perfis' => ['admin']],
     ];
 

@@ -218,12 +218,11 @@
 
         // Colunas: [título, largura relativa, alinhamento]. Outras telas (Tirinha) mandam as próprias.
         const colunas = buffer.colunas || [
-            ['Pedido', 0.09, 'left'],
-            ['Cliente', 0.09, 'left'],
-            ['Nome fantasia', 0.27, 'left'],
-            ['Setor', 0.26, 'left'],
-            ['Tipo pedido', 0.13, 'left'],
-            ['Volume (HL)', 0.16, 'right'],
+            ['Cliente', 0.10, 'left'],
+            ['Nome do cliente', 0.36, 'left'],
+            ['Setor', 0.28, 'left'],
+            ['Pedidos', 0.10, 'right'],
+            ['Volume total (HL)', 0.16, 'right'],
         ];
         const xTabela = MARGEM;
         const yTabela = ALTURA_FAIXA + MARGEM;

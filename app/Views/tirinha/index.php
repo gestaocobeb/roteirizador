@@ -148,7 +148,7 @@ if ($tirinhas && $cartao !== null) {
                     <li><strong>Boleto:</strong> notas do mapa com "Nr Tit. Bco" preenchido no 03.02.37.</li>
                     <li><strong>Cartão crédito:</strong> notas do mapa com Cond. pagt <?= e(\App\Helpers\Tirinha::COND_CARTAO) ?>. <strong>Pix:</strong> Cond. pagt <?= e(\App\Helpers\Tirinha::COND_PIX) ?>.</li>
                     <li>Uma nota que aparece em mais de um arquivo conta uma vez. Mapa sem a forma de pagamento = 0.</li>
-                    <li>Nada é gravado no sistema.</li>
+                    <li>As tirinhas não são gravadas; o 03.11.49.02 também atualiza a aba CTE da revenda.</li>
                 </ul>
             </div>
         </div>

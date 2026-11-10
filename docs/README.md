@@ -67,9 +67,9 @@ O sistema é separado por revenda em todas as telas: **PM**, **LP** e **AB**.
 
 ### Abas liberadas por usuário
 
-Na tela **Usuários**, o administrador marca quais abas (Crítica GOD, Prioridade, Consulta do dia, Troca, Aprovação troca, Importações, Setores, Bees Loat, Farol, Tirinha, Usuários) cada usuário acessa. Funciona assim:
+Na tela **Usuários**, o administrador marca quais abas (Crítica GOD, Prioridade, Consulta do dia, Troca, Aprovação troca, Importações, Setores, Bees Loat, Farol, Tirinha, CTE, Usuários) cada usuário acessa. Funciona assim:
 
-- O perfil é o limite: Importações, Setores, Aprovação troca, Farol e Tirinha só podem ser liberados para Logística, e Usuários só para Administrador. Abas fora do perfil são descartadas ao salvar.
+- O perfil é o limite: Importações, Setores, Aprovação troca, Farol, Tirinha e CTE só podem ser liberados para Logística, e Usuários só para Administrador. Abas fora do perfil são descartadas ao salvar.
 - O Administrador tem sempre todas as abas.
 - Uma aba não liberada some do menu e do painel, e qualquer rota dela (GET ou POST) responde 403. O bloqueio é feito pelo `PerfilMiddleware`, que identifica a aba pelo primeiro segmento da URL.
 - A lista de abas fica em `UsuarioModel::ABAS`. Uma tela nova vira aba quando é adicionada a essa lista.
@@ -147,26 +147,27 @@ Limites padrão da Prioridade: 5 clientes e 15 HL por setor nas Mesas 52 e 53; 5
 Painel do dia por revenda (Logística), equivalente às abas "Plan1" e "R. 03.11.49.02" da planilha. Cada revenda tem um card com os indicadores e há um "Resumo do dia" com a soma das revendas. Os dados chegam por dois tipos de importação, enviados pela própria tela do Farol ou por Importações (aceitam "Todas"):
 
 - **Farol - Mapas roteirizados (Promax 03.11.49.02)**: um registro por mapa. A revenda vem da coluna UNB.
-- **Farol - Buffer do Cora**: o mesmo export do Cora, com a coluna "Tipo buffer". Grava um registro por pedido com o volume somado e o setor do cliente (Cód. setor e Desc. setor). As reposições são gravadas, mas não contam como buffer. A revenda vem do Cód. unidade venda.
+- **Farol - Pedidos do Cora (pedidos_roteirizacao)**: export do Cora `<filial>_<n>_pedidos_roteirizacao_<data>.csv`, um item por linha. Grava um registro por pedido e Situação do pedido (coluna K) com o HectoLitro (coluna W) somado. A revenda vem do CodigoFilialVenda (772003 = PM, 1883003 = LP, 984507 = AB). O arquivo não traz setor: no buffer, o setor do cliente (código e descrição) vem do **Cadastro de clientes (Promax 01.20.11)** e, se o cliente não estiver lá, da última importação do Cora usada na Crítica. O 01.20.11 traz o código do cliente com ponto de milhar ("45.554"), lido como 45554.
 
-Cada importação substitui os dados da revenda. O **volume vendido** (Promax 03.01.47.01, Quebra 1: Geral) e as observações de Spot e recarga são digitados no card da revenda (tabela `farol_revendas`).
+Cada importação substitui os dados da revenda. Os volumes vendido, roteirizado e buffer saem do arquivo do Cora; só as observações de Spot e recarga são digitadas no card da revenda (tabela `farol_revendas`; a coluna `volume_vendido_hl` ficou sem uso).
 
-**Imagem para WhatsApp**: o botão "Baixar imagem para WhatsApp" gera um PNG com os cards das revendas e o resumo do dia, no navegador. Em "Mapas e buffer" de cada revenda, o botão "Baixar imagem do buffer" gera a tabela dos pedidos reprogramados (pedido, cliente, nome fantasia, setor, tipo e volume) com o total, ordenada por cliente e, dentro do cliente, por volume (maior primeiro). Ao lado, "Baixar em Excel" (rota `/farol/buffer/{revenda}`) baixa a mesma lista em CSV para Excel (separador `;`, UTF-8 com BOM), com setor em duas colunas (código e descrição) e uma linha de total. O desenho é feito em `<canvas>` com JavaScript puro (`public/assets/js/farol.js`), sem biblioteca e sem processamento no servidor. No celular, quando o sistema é acessado por HTTPS, o botão abre direto o compartilhamento (WhatsApp); nos demais casos, baixa o arquivo `farol-DDMMAAAA.png`.
+**Imagem para WhatsApp**: o botão "Baixar imagem para WhatsApp" gera um PNG com os cards das revendas e o resumo do dia, no navegador. Em "Mapas e buffer" de cada revenda, o botão "Baixar imagem do buffer" gera a tabela do buffer reprogramado com **uma linha por cliente**: os pedidos duplicados do cliente são juntados e o volume é o total dele (cliente, nome do cliente, setor, quantidade de pedidos e volume total), com o total geral, ordenada por **setor**, depois **volume** total (maior primeiro) e depois **cliente** (clientes sem setor no fim). Na tela e no Excel, a coluna Pedidos traz os números dos pedidos (maior volume primeiro). Ao lado, "Baixar em Excel" (rota `/farol/buffer/{revenda}`) baixa a mesma lista em CSV para Excel (separador `;`, UTF-8 com BOM), com setor em duas colunas (código e descrição) e uma linha de total. O desenho é feito em `<canvas>` com JavaScript puro (`public/assets/js/farol.js`), sem biblioteca e sem processamento no servidor. No celular, quando o sistema é acessado por HTTPS, o botão abre direto o compartilhamento (WhatsApp); nos demais casos, baixa o arquivo `farol-DDMMAAAA.png`.
 
 Regras (`app/Helpers/Farol.php`):
 
 | Indicador | Cálculo |
 |---|---|
 | Tipo do mapa | Placa repetida no arquivo: o 1º mapa da placa segue a regra normal e os seguintes (2º, 3º, 4º...) = Recarga. Placa começando com `REC` = Recarga; carga "Freteiro" = Spot; demais = FF |
-| Volume buffer (HL) | Soma do volume hectolitro dos pedidos com Tipo buffer = REPROGRAMADO, exceto Tipo pedido = REPOSIÇÃO (a planilha somava também as reposições) |
-| Volume roteirizado (HL) | Volume vendido − volume buffer |
+| Volume roteirizado (HL) | Soma do HectoLitro (W) com Situação do pedido (K) = ENVIADO_HUB_FATURAMENTO ou AGUARDANDO_ROTEIRIZACAO |
+| Volume buffer (HL) | Soma do HectoLitro (W) com Situação do pedido (K) = REPROGRAMADO |
+| Volume vendido (HL) | Soma do HectoLitro (W) com Situação do pedido (K) = ENVIADO_HUB_FATURAMENTO, AGUARDANDO_ROTEIRIZACAO ou REPROGRAMADO (= roteirizado + buffer; CANCELADO não entra) |
 | Clientes roteirizados | Soma das "Entregas" de todos os mapas (FF + Spot + Recarga) |
-| Clientes buffer | Clientes distintos com pedido REPROGRAMADO que não é reposição (na planilha era digitado) |
+| Clientes buffer | Clientes distintos com pedido REPROGRAMADO (na planilha era digitado) |
 | Peso roteirizado | Soma do "Total peso" dos mapas |
 | Mapas FF / Spot / Recarga programada | Quantidade de mapas de cada tipo |
 | Cx/viagem FF e Spot | Total de caixas do tipo ÷ mapas do tipo |
 
-Diferença da planilha: na aba "R. 03.11.49.02", as placas eram listadas à mão em FF, SPOT e RECARGA. No sistema, a classificação é automática. Uma placa com mais de um mapa no dia conta o 1º como FF (ou Spot, se for Freteiro) e os demais como recarga. Conferido com a planilha de 06/11/2026: volume vendido, clientes roteirizados, peso, mapas e cx/viagem idênticos nas três revendas. O buffer difere da planilha onde havia reposição reprogramada (LP: 21,19 HL no sistema e 21,41 HL na planilha).
+Diferença da planilha: na aba "R. 03.11.49.02", as placas eram listadas à mão em FF, SPOT e RECARGA. No sistema, a classificação é automática. Uma placa com mais de um mapa no dia conta o 1º como FF (ou Spot, se for Freteiro) e os demais como recarga. Conferido com a planilha de 06/11/2026: clientes roteirizados, peso, mapas e cx/viagem idênticos nas três revendas. Desde a versão 1.8.0 os volumes vêm do arquivo pedidos_roteirizacao do Cora (antes, o vendido era digitado do Promax 03.01.47.01 e o buffer vinha do export do Cora com "Tipo buffer").
 
 ## Bees Loat (CSV de dias de entrega do BEES)
 
@@ -193,7 +194,7 @@ As colunas são localizadas pelo nome do cabeçalho. Se uma delas faltar, a tela
 
 ## Tirinha (substitui a planilha "TIRINHA PM")
 
-A aba monta uma tirinha por mapa para entregar ao motorista, igual à aba "Plan1" da planilha, e imprime pelo botão **Imprimir** (cada tirinha fica inteira na página, com as colunas alinhadas para recortar). Nada é gravado no banco; as regras ficam em `app/Helpers/Tirinha.php`. Acesso: Logística e Administrador.
+A aba monta uma tirinha por mapa para entregar ao motorista, igual à aba "Plan1" da planilha, e imprime pelo botão **Imprimir** (cada tirinha fica inteira na página, com as colunas alinhadas para recortar). As tirinhas não são gravadas; as regras ficam em `app/Helpers/Tirinha.php`. O 03.11.49.02 enviado também atualiza a aba **CTE** da revenda (tabela `cte_mapas`). Acesso: Logística e Administrador.
 
 | Coluna | Origem |
 |---|---|
@@ -210,6 +211,24 @@ A aba monta uma tirinha por mapa para entregar ao motorista, igual à aba "Plan1
 - Tempo aceita "03:15", "03:15:00" ou a fração de dia do Excel.
 - Sem o 03.02.31 ou o 03.02.37 (ou sem a coluna "Cond. pagt"), as colunas correspondentes ficam em branco e a tela avisa.
 - Conferido com o exemplo de 09/11/2026 (31 mapas): boleto 362, cartão 5 e pix 106, iguais à planilha; 28 tirinhas idênticas. Diferenças: nos mapas 398918, 398919 e 398920 a planilha mostra `#N/A` em Inicial/Final/Emitidas (fórmula fora do intervalo "notas"), e o sistema mostra os valores do 03.02.31; no mapa 398918 o tempo foi digitado à mão na planilha (03:00) por cima do Promax (07:26), e o sistema usa sempre o 03.11.49.02.
+
+## CTE (substitui a planilha "Ct'e PM")
+
+Aba da Logística que monta a planilha do CT-e, **uma revenda por vez** (PM, LP e AB nas abas do topo da tela). Os dados ficam gravados (tabelas `cte_mapas` e `cte_fretes`) até a próxima importação da revenda.
+
+| Coluna | Origem |
+|---|---|
+| Mapa e Placa | 03.11.49.02 (arquivo enviado na aba CTE **ou na Tirinha**: o mesmo arquivo da Tirinha já atualiza o CTE da revenda). **Uma linha por placa**: vale o 1º mapa da placa no arquivo; as recargas não entram. Ordem por mapa (como a macro "Classificar" da planilha). A revenda vem da coluna UNB |
+| Preço frete - cód. cidade | Tabela de fretes da revenda (aba "TABELA CUSTOS FRETES"), procurada pelas cidades do mapa, na ordem do relatório (ex.: `NOVA SERRANA / IGARATINGA`) |
+| Valor | 03.03.12 colado da tela (aba "03_03_12"): a linha começa pelo mapa (o ponto de milhar é ignorado: "398.891" = 398891) e o valor é o primeiro número com centavos |
+| Pedido, Peso e Cidade | Entregas, Total peso e Cidades +Entregas (sem as quantidades) do 03.11.49.02 |
+| Motorista e Código | Colados na caixa "Motoristas" (uma linha por mapa: o mapa primeiro e depois o código e o nome, em qualquer ordem; aceita cópia do Excel com TAB) ou digitados na tabela. O 03.11.49.02 só traz o código Promax do motorista, mostrado abaixo do campo. Campo vazio na colagem não apaga o que já estava preenchido |
+| Ct'e | Digitado na tela |
+
+- Reenviar o 03.11.49.02 substitui as placas da revenda, mas mantém o valor e o que foi digitado nos mapas que continuam no arquivo.
+- **Exportar:** "Salvar e exportar Excel" grava o que foi digitado e baixa `cte-<revenda>-<data>.xlsx` **no mesmo formato da aba Cte da planilha** (`app/Helpers/CteExcel.php`): usa os estilos e o tema copiados da planilha (`app/Helpers/Modelos/cte-estilos.xml` e `cte-tema.xml`), data de entrega mesclada em A1:J1, cabeçalho na linha 2, mesmas larguras e alturas (linhas com muitas cidades ficam mais altas), linhas de PARA DE MINAS em verde, A4 retrato em 68% e cabeçalho/rodapé "Cte" e "Página N". O VALOR sai como número (#.##0,00). Gerado em PHP puro (`app/Helpers/XlsxEscritor.php`, extensão zip). A rota `/cte/exportar/{revenda}` baixa sem salvar.
+- **Tabela de fretes:** por revenda, no fim da tela (cadastrar, editar e excluir). A de PM vem da planilha (404 rotas; nas rotas repetidas vale a 1ª, como no PROCV: MARAVILHAS = 1357,88 - 2532 e PARA DE MINAS / IGARATINGA = 1173,20 - 2741). LP e AB começam vazias. Cidades sem frete aparecem em destaque, com botão para cadastrar.
+- Conferido com a planilha de 09/11/2026 (PM): as 20 placas em comum têm frete, valor, pedido, peso e cidade idênticos. Diferenças pela regra do 1º mapa: a planilha usava o 398896 da RTS1D05 (o sistema usa o 398895) e não tinha as placas SYC8B33, TDO2B97 e TDV7F68.
 
 ## Estrutura específica do sistema
 

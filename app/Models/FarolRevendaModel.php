@@ -5,7 +5,7 @@ namespace App\Models;
 use App\Core\Model;
 
 /**
- * Dados digitados no Farol por revenda (volume vendido e observações).
+ * Dados digitados no Farol por revenda (observações de Spot e recarga).
  */
 class FarolRevendaModel extends Model
 {
@@ -24,19 +24,21 @@ class FarolRevendaModel extends Model
         return $stmt->fetch() ?: null;
     }
 
-    public function salvar(string $revenda, ?float $volume, ?string $obsSpot, ?string $obsRecarga, int $usuarioId): void
+    /**
+     * Grava as observações. A coluna volume_vendido_hl ficou sem uso: o volume vendido
+     * agora sai do arquivo do Cora (FarolBufferModel).
+     */
+    public function salvar(string $revenda, ?string $obsSpot, ?string $obsRecarga, int $usuarioId): void
     {
         $stmt = $this->db->prepare(
-            'INSERT INTO farol_revendas (revenda, volume_vendido_hl, observacao_spot, observacao_recarga, usuarios_id)
-             VALUES (:revenda, :volume, :spot, :recarga, :usuario)
-             ON DUPLICATE KEY UPDATE volume_vendido_hl = VALUES(volume_vendido_hl),
-                 observacao_spot = VALUES(observacao_spot),
+            'INSERT INTO farol_revendas (revenda, observacao_spot, observacao_recarga, usuarios_id)
+             VALUES (:revenda, :spot, :recarga, :usuario)
+             ON DUPLICATE KEY UPDATE observacao_spot = VALUES(observacao_spot),
                  observacao_recarga = VALUES(observacao_recarga),
                  usuarios_id = VALUES(usuarios_id)'
         );
         $stmt->execute([
             'revenda' => $revenda,
-            'volume' => $volume,
             'spot' => $obsSpot,
             'recarga' => $obsRecarga,
             'usuario' => $usuarioId,
