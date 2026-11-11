@@ -2,8 +2,10 @@
 
 namespace App\Models;
 
+use App\Helpers\Cte;
+
 /**
- * Linhas do CTE por revenda (uma por placa, 1º mapa da placa no 03.11.49.02).
+ * Mapas do CTE por revenda (todos do 03.11.49.02; a planilha mostra os com motorista).
  */
 class CteMapaModel extends ImportavelModel
 {
@@ -18,13 +20,46 @@ class CteMapaModel extends ImportavelModel
     public const DIGITADOS = ['cte_numero', 'motorista_nome', 'motorista_codigo'];
 
     /**
-     * Linhas da revenda ordenadas pelo mapa (como a macro "Classificar" da planilha).
+     * Linhas da planilha: só os mapas com motorista (colado em Motoristas), sem as
+     * placas ignoradas (Cte::PLACAS_IGNORADAS), ordenadas pelo mapa (como a macro
+     * "Classificar" da planilha).
      */
     public function daRevenda(string $revenda): array
     {
+        $ignoradas = implode(', ', array_fill(0, count(Cte::PLACAS_IGNORADAS), '?'));
         $stmt = $this->db->prepare(
-            'SELECT * FROM cte_mapas WHERE revenda = :revenda ORDER BY CAST(numero_mapa AS UNSIGNED), placa'
+            "SELECT * FROM cte_mapas
+             WHERE revenda = ? AND placa NOT IN ({$ignoradas})
+               AND (motorista_nome IS NOT NULL OR motorista_codigo IS NOT NULL)
+             ORDER BY CAST(numero_mapa AS UNSIGNED), placa"
         );
+        $stmt->execute([$revenda, ...Cte::PLACAS_IGNORADAS]);
+
+        return $stmt->fetchAll();
+    }
+
+    /**
+     * Quantos mapas do 03.11.49.02 da revenda ainda não têm motorista colado.
+     */
+    public function semMotorista(string $revenda): int
+    {
+        $ignoradas = implode(', ', array_fill(0, count(Cte::PLACAS_IGNORADAS), '?'));
+        $stmt = $this->db->prepare(
+            "SELECT COUNT(*) FROM cte_mapas
+             WHERE revenda = ? AND placa NOT IN ({$ignoradas})
+               AND motorista_nome IS NULL AND motorista_codigo IS NULL"
+        );
+        $stmt->execute([$revenda, ...Cte::PLACAS_IGNORADAS]);
+
+        return (int) $stmt->fetchColumn();
+    }
+
+    /**
+     * Todos os mapas guardados da revenda (inclusive os que não estão na planilha).
+     */
+    private function todos(string $revenda): array
+    {
+        $stmt = $this->db->prepare('SELECT * FROM cte_mapas WHERE revenda = :revenda');
         $stmt->execute(['revenda' => $revenda]);
 
         return $stmt->fetchAll();
@@ -37,7 +72,7 @@ class CteMapaModel extends ImportavelModel
     public function importar(string $revenda, array $registros): int
     {
         $anteriores = [];
-        foreach ($this->daRevenda($revenda) as $linha) {
+        foreach ($this->todos($revenda) as $linha) {
             $anteriores[$linha['numero_mapa']] = $linha;
         }
 
@@ -61,7 +96,7 @@ class CteMapaModel extends ImportavelModel
     public function gravarValores(string $revenda, array $valores): int
     {
         // Só os mapas que estão no CTE (rowCount não conta linha com o mesmo valor).
-        $existentes = array_flip(array_column($this->daRevenda($revenda), 'numero_mapa'));
+        $existentes = array_flip(array_column($this->todos($revenda), 'numero_mapa'));
         $valores = array_intersect_key($valores, $existentes);
         $stmt = $this->db->prepare('UPDATE cte_mapas SET valor = :valor WHERE revenda = :revenda AND numero_mapa = :mapa');
 
@@ -80,7 +115,7 @@ class CteMapaModel extends ImportavelModel
      */
     public function gravarMotoristas(string $revenda, array $motoristas): int
     {
-        $existentes = array_flip(array_column($this->daRevenda($revenda), 'numero_mapa'));
+        $existentes = array_flip(array_column($this->todos($revenda), 'numero_mapa'));
         $motoristas = array_intersect_key($motoristas, $existentes);
         $stmt = $this->db->prepare(
             'UPDATE cte_mapas SET motorista_nome = COALESCE(:nome, motorista_nome), motorista_codigo = COALESCE(:codigo, motorista_codigo)

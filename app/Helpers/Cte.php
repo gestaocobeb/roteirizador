@@ -9,7 +9,8 @@ use RuntimeException;
  *
  * Fontes, como na planilha:
  *  - 03.11.49.02 (aba "03114902"): placa, mapa, motorista (código), entregas (coluna PEDIDO),
- *    total peso e cidades. Uma linha por placa: vale o 1º mapa da placa no arquivo;
+ *    total peso e cidades. Todos os mapas são guardados; na planilha entram só os
+ *    mapas colados em Motoristas (mapa, código e nome);
  *  - 03.03.12 (colado da tela, aba "03_03_12"): valor do mapa (coluna H);
  *  - Tabela de fretes da revenda (aba "TABELA CUSTOS FRETES"): cidades => valor - código.
  */
@@ -18,8 +19,11 @@ class Cte
     /** Linhas lidas até achar o cabeçalho do 03.11.49.02. */
     private const LIMITE_CABECALHO = 30;
 
+    /** Placas que não entram no CTE (não iam para a planilha). */
+    public const PLACAS_IGNORADAS = ['TDO2B97', 'TDV7F68', 'SYC8B33', 'TDK1B19', 'TDK1B21', 'OLZ5103'];
+
     /**
-     * 1º mapa de cada placa da revenda (coluna UNB), na ordem do arquivo.
+     * Mapas da revenda (coluna UNB), na ordem do arquivo, sem as placas ignoradas.
      *
      * @param int $ignorados Recebe a quantidade de linhas de outras revendas
      * @return array<int, array> registros para CteMapaModel
@@ -29,7 +33,7 @@ class Cte
         $ignorados = 0;
         $colunas = null;
         $lidas = 0;
-        $placas = [];
+        $mapas = [];
 
         foreach (PlanilhaLeitor::linhas($caminho, $extensao, ['03 11 49 02']) as $linha) {
             if ($colunas === null) {
@@ -42,7 +46,7 @@ class Cte
 
             $mapa = Importador::codigo((string) ($linha[$colunas['mapa']] ?? ''));
             $placa = strtoupper(trim((string) ($linha[$colunas['placa']] ?? '')));
-            if ($mapa === null || $placa === '') {
+            if ($mapa === null || $placa === '' || in_array($placa, self::PLACAS_IGNORADAS, true)) {
                 continue;
             }
 
@@ -54,8 +58,8 @@ class Cte
                 continue;
             }
 
-            // Uma linha por placa, como na planilha: os mapas seguintes da placa (recargas) não entram.
-            $placas[$placa] ??= [
+            // Todos os mapas (recargas também): entram na planilha só os colados em Motoristas.
+            $mapas[(string) $mapa] ??= [
                 'data_entrega' => isset($colunas['data']) ? Importador::data((string) ($linha[$colunas['data']] ?? '')) : null,
                 'numero_mapa' => (string) $mapa,
                 'placa' => $placa,
@@ -70,7 +74,7 @@ class Cte
             throw new RuntimeException('O arquivo não parece ser o 03.11.49.02: faltam as colunas "Nro do Mapa", "Placa", "Entregas" e "Total peso".');
         }
 
-        return array_values($placas);
+        return array_values($mapas);
     }
 
     /**

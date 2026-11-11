@@ -27,8 +27,11 @@ class FarolController extends BaseController
             $roteirizado = $buffer->volumeRoteirizado($revenda);
             $reprogramados = $roteirizado !== null ? $buffer->reprogramados($revenda) : [];
 
-            $farois[$revenda] = Farol::calcular($mapas->daRevenda($revenda), $reprogramados, $roteirizado) + [
-                'digitados' => $digitados->daRevenda($revenda),
+            $dados = $digitados->daRevenda($revenda);
+            $farol = Farol::calcular($mapas->daRevenda($revenda), $reprogramados, $roteirizado);
+
+            $farois[$revenda] = Farol::aplicarAjustes($farol, $dados) + [
+                'digitados' => $dados,
                 'buffer' => $reprogramados,
                 'buffer_importado' => $roteirizado !== null,
             ];
@@ -92,8 +95,8 @@ class FarolController extends BaseController
     }
 
     /**
-     * Grava as observações de Spot e recarga de uma revenda (o volume vendido
-     * agora vem do arquivo do Cora).
+     * Grava as observações de Spot e recarga e o ajuste das quantidades de mapas
+     * FF, Spot e recarga (campo vazio = quantidade do 03.11.49.02).
      */
     public function salvar(): void
     {
@@ -105,9 +108,29 @@ class FarolController extends BaseController
 
         $texto = fn (string $campo) => mb_substr(trim((string) $this->input($campo, '')), 0, 150) ?: null;
 
-        (new FarolRevendaModel())->salvar($revenda, $texto('observacao_spot'), $texto('observacao_recarga'), (int) $this->usuario()['id']);
+        $ajustes = [];
+        foreach (['ff' => 'mapas_ff', 'spot' => 'mapas_spot', 'recarga' => 'recargas'] as $chave => $campo) {
+            $valor = trim((string) $this->input($campo, ''));
+            if ($valor !== '' && (!ctype_digit($valor) || (int) $valor > 999)) {
+                $this->voltar('farol', 'danger', 'Informe as quantidades de mapas como números inteiros (0 a 999) ou deixe em branco.');
+            }
+            $ajustes[$chave] = $valor === '' ? null : (int) $valor;
+        }
 
-        Logger::info("Farol {$revenda}: observações salvas por " . $this->usuario()['email']);
+        // Os ajustes valem para a entrega dos mapas importados agora.
+        $dataEntrega = Farol::calcular((new FarolMapaModel())->daRevenda($revenda), [], null)['data_entrega'];
+
+        (new FarolRevendaModel())->salvar(
+            $revenda,
+            $texto('observacao_spot'),
+            $texto('observacao_recarga'),
+            $ajustes,
+            $dataEntrega,
+            (int) $this->usuario()['id']
+        );
+
+        Logger::info("Farol {$revenda}: dados salvos por " . $this->usuario()['email']
+            . ' (ajustes FF/Spot/Recarga: ' . implode('/', array_map(fn ($v) => $v ?? 'arquivo', $ajustes)) . ')');
 
         $this->voltar('farol', 'success', "Dados do Farol de {$revenda} salvos.");
     }

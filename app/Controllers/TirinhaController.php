@@ -61,10 +61,10 @@ class TirinhaController extends BaseController
 
         $avisos = [];
 
-        // O mesmo 03.11.49.02 alimenta a aba CTE da revenda (uma linha por placa).
+        // O mesmo 03.11.49.02 alimenta a aba CTE da revenda (entram na planilha os mapas colados em Motoristas).
         try {
             $cte = (new CteMapaModel())->importar($revenda, Cte::lerMapas($arquivoMapas['caminho'], $arquivoMapas['extensao'], Revenda::REVENDAS[$revenda]['unb']));
-            $avisos[] = "03.11.49.02 enviado também para a aba CTE de {$revenda} ({$cte} placa(s)).";
+            $avisos[] = "03.11.49.02 enviado também para a aba CTE de {$revenda} ({$cte} mapa(s)).";
         } catch (\Throwable $e) {
             Logger::warning('Tirinha: 03.11.49.02 não gravado no CTE: ' . $e->getMessage());
             $avisos[] = 'Não foi possível enviar este 03.11.49.02 para a aba CTE: ' . ($e instanceof \RuntimeException ? $e->getMessage() : 'erro ao gravar.');

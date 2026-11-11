@@ -31,6 +31,8 @@ class CteController extends BaseController
             'revendas' => $this->revendasPermitidas(),
             'linhas' => $linhas,
             'fretes' => $fretes,
+            // Mapas do 03.11.49.02 fora da planilha por ainda não terem motorista colado.
+            'semMotorista' => (new CteMapaModel())->semMotorista($revenda),
             'dataEntrega' => max(array_column($linhas, 'data_entrega') ?: [null]),
             // Cidades dos mapas sem frete cadastrado (para cadastrar na hora).
             'semFrete' => array_values(array_unique(array_filter(array_map(
@@ -75,7 +77,7 @@ class CteController extends BaseController
             }
 
             $total = $model->importar($revenda, $registros);
-            $mensagens[] = "03.11.49.02: {$total} placa(s)" . ($ignorados ? " ({$ignorados} linha(s) de outras revendas ignorada(s))" : '') . '.';
+            $mensagens[] = "03.11.49.02: {$total} mapa(s)" . ($ignorados ? " ({$ignorados} linha(s) de outras revendas ignorada(s))" : '') . '.';
         }
 
         if (trim($texto) !== '') {

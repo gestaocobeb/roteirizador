@@ -4,6 +4,10 @@ use App\Helpers\Revenda;
 
 $fmtInt = fn ($v) => number_format((float) $v, 0, ',', '.');
 $fmtCx = fn ($v) => $v === null ? '—' : number_format((float) $v, 2, ',', '.');
+// Quantidade ajustada na tela: mostra a do 03.11.49.02 ao lado.
+$ajustado = fn (array $f, string $campo) => isset($f['calculados'][$campo])
+    ? ' <span class="badge text-bg-warning" title="Ajustado na tela">ajustado</span><div class="small text-muted">arquivo: ' . e($fmtInt($f['calculados'][$campo])) . '</div>'
+    : '';
 // Setor do pedido do buffer: "245 - WESLEI RODRIGUES".
 $fmtSetor = fn (array $p) => implode(' - ', array_filter([(string) ($p['setor_codigo'] ?? ''), (string) ($p['setor_descricao'] ?? '')], 'strlen'));
 
@@ -110,12 +114,12 @@ if (count($farois) > 1) {
                             </tr>
                             <tr>
                                 <th class="ps-3">Mapas FF roteirizados</th>
-                                <td class="text-end pe-3"><?= e($fmtInt($f['mapas_ff'])) ?></td>
+                                <td class="text-end pe-3"><?= e($fmtInt($f['mapas_ff'])) ?><?= $ajustado($f, 'mapas_ff') ?></td>
                             </tr>
                             <tr>
                                 <th class="ps-3">Mapas Spot roteirizados</th>
                                 <td class="text-end pe-3">
-                                    <?= e($fmtInt($f['mapas_spot'])) ?>
+                                    <?= e($fmtInt($f['mapas_spot'])) ?><?= $ajustado($f, 'mapas_spot') ?>
                                     <?php if (!empty($f['digitados']['observacao_spot'])): ?>
                                         <div class="small text-muted"><?= e($f['digitados']['observacao_spot']) ?></div>
                                     <?php endif; ?>
@@ -124,7 +128,7 @@ if (count($farois) > 1) {
                             <tr>
                                 <th class="ps-3">Recarga programada</th>
                                 <td class="text-end pe-3">
-                                    <?= e($fmtInt($f['recargas'])) ?>
+                                    <?= e($fmtInt($f['recargas'])) ?><?= $ajustado($f, 'recargas') ?>
                                     <?php if (!empty($f['digitados']['observacao_recarga'])): ?>
                                         <div class="small text-muted"><?= e($f['digitados']['observacao_recarga']) ?></div>
                                     <?php endif; ?>
@@ -145,6 +149,16 @@ if (count($farois) > 1) {
                     <form method="post" action="<?= e(base_url('farol/dados')) ?>" class="row g-2">
                         <?= csrf_field() ?>
                         <input type="hidden" name="revenda" value="<?= e($revenda) ?>">
+                        <?php foreach (['mapas_ff' => 'Mapas FF', 'mapas_spot' => 'Mapas Spot', 'recargas' => 'Recarga'] as $campo => $rotulo): ?>
+                            <div class="col-4">
+                                <label class="form-label small text-muted mb-0" for="<?= e($campo . '_' . $revenda) ?>"><?= e($rotulo) ?></label>
+                                <input type="number" min="0" max="999" step="1" class="form-control form-control-sm"
+                                       id="<?= e($campo . '_' . $revenda) ?>" name="<?= e($campo) ?>"
+                                       placeholder="<?= e((string) ($f['calculados'][$campo] ?? $f[$campo])) ?>"
+                                       value="<?= e(isset($f['calculados'][$campo]) ? (string) $f[$campo] : '') ?>"
+                                       title="Em branco = quantidade do 03.11.49.02 (<?= e((string) ($f['calculados'][$campo] ?? $f[$campo])) ?>)">
+                            </div>
+                        <?php endforeach; ?>
                         <div class="col-6">
                             <input type="text" maxlength="150" class="form-control form-control-sm" name="observacao_spot" placeholder="Obs. Spot (ex.: 1 VAN)"
                                    value="<?= e($f['digitados']['observacao_spot'] ?? '') ?>">
@@ -225,6 +239,7 @@ if (count($farois) > 1) {
                     <li><strong>Mapas (03.11.49.02):</strong> placa repetida: o 1º mapa da placa (na ordem do arquivo) segue a regra normal e os seguintes (2º, 3º, 4º...) são recarga. Placa começando com REC = recarga; carga "Freteiro" = Spot; os demais = FF.</li>
                     <li><strong>Clientes roteirizados:</strong> soma das entregas de todos os mapas (FF + Spot + recarga). <strong>Peso:</strong> soma do total de peso.</li>
                     <li><strong>Cx/viagem:</strong> total de caixas do tipo ÷ quantidade de mapas do tipo.</li>
+                    <li><strong>Ajuste das quantidades:</strong> Mapas FF, Mapas Spot e Recarga podem ser trocados no rodapé do cartão (em branco = quantidade do 03.11.49.02). O ajuste vale só para a entrega dos mapas importados quando foi salvo e entra na imagem do WhatsApp; Cx/viagem continua pelo arquivo.</li>
                     <li><strong>Volumes (Cora, pedidos_roteirizacao):</strong> soma do HectoLitro (coluna W) pela Situação do pedido (coluna K). <strong>Roteirizado:</strong> ENVIADO_HUB_FATURAMENTO + AGUARDANDO_ROTEIRIZACAO. <strong>Buffer:</strong> REPROGRAMADO. <strong>Vendido:</strong> as três juntas (CANCELADO não entra).</li>
                     <li><strong>Clientes buffer:</strong> clientes distintos dos pedidos REPROGRAMADO. O setor vem da base de clientes (ou da última importação do Cora da Crítica).</li>
                     <li>Cada importação substitui os dados da revenda; o histórico fica em Importações.</li>

@@ -60,7 +60,7 @@ $semValor = count(array_filter($linhas, fn ($l) => $l['valor'] === null));
             <div class="card-header"><strong>Como o CTE é montado</strong></div>
             <div class="card-body small">
                 <ul class="mb-0">
-                    <li>Uma linha por <strong>placa</strong>: o 1º mapa da placa no 03.11.49.02 (recargas não entram), em ordem de mapa.</li>
+                    <li>Entram só os <strong>mapas colados em Motoristas</strong> (mapa, código e nome), recargas inclusive, em ordem de mapa. As placas <?= e(implode(', ', \App\Helpers\Cte::PLACAS_IGNORADAS)) ?> não entram.</li>
                     <li><strong>Pedido, Peso e Cidade:</strong> Entregas, Total peso e Cidades do 03.11.49.02.</li>
                     <li><strong>Valor:</strong> do 03.03.12 colado. <strong>Preço frete - cód. cidade:</strong> da tabela de fretes de <?= e($revenda) ?>, pelas cidades do mapa.</li>
                     <li><strong>Motorista e Código:</strong> colados (mapa, código e nome) ou digitados na tabela. <strong>Ct'e:</strong> digitado.</li>
@@ -70,8 +70,12 @@ $semValor = count(array_filter($linhas, fn ($l) => $l['valor'] === null));
     </div>
 </div>
 
+<?php if ($semMotorista): ?>
+    <div class="alert alert-secondary py-2 small"><?= e((string) $semMotorista) ?> mapa(s) do 03.11.49.02 fora da planilha: entram ao colar mapa, código e nome em Motoristas.</div>
+<?php endif; ?>
+
 <?php if (!$linhas): ?>
-    <div class="alert alert-info">Nenhum mapa de <?= e($revenda) ?> no CTE. Envie o 03.11.49.02 aqui ou gere a Tirinha da revenda.</div>
+    <div class="alert alert-info">Nenhum mapa de <?= e($revenda) ?> na planilha. Envie o 03.11.49.02 (aqui ou pela Tirinha) e cole os motoristas (mapa, código e nome).</div>
 <?php else: ?>
     <?php if ($semFrete): ?>
         <div class="alert alert-warning py-2 small">
@@ -87,7 +91,7 @@ $semValor = count(array_filter($linhas, fn ($l) => $l['valor'] === null));
         <?= csrf_field() ?>
         <input type="hidden" name="revenda" value="<?= e($revenda) ?>">
         <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
-            <strong>CT-e <?= e($revenda) ?><?= $dataEntrega ? ' - entrega ' . e(fmt_data($dataEntrega)) : '' ?> <span class="badge text-bg-secondary"><?= e((string) count($linhas)) ?> placa(s)</span></strong>
+            <strong>CT-e <?= e($revenda) ?><?= $dataEntrega ? ' - entrega ' . e(fmt_data($dataEntrega)) : '' ?> <span class="badge text-bg-secondary"><?= e((string) count($linhas)) ?> mapa(s)</span></strong>
             <div class="d-flex flex-wrap gap-2">
                 <button type="submit" class="btn btn-sm btn-outline-primary"><i class="bi bi-check2"></i> Salvar</button>
                 <button type="submit" name="exportar" value="1" class="btn btn-sm btn-success"><i class="bi bi-file-earmark-excel"></i> Salvar e exportar Excel</button>

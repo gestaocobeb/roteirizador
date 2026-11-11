@@ -86,6 +86,36 @@ class Farol
         ];
     }
 
+    /** Ajustes manuais: chave do cálculo => coluna de farol_revendas. */
+    public const AJUSTES = [
+        'mapas_ff' => 'mapas_ff_ajuste',
+        'mapas_spot' => 'mapas_spot_ajuste',
+        'recargas' => 'recargas_ajuste',
+    ];
+
+    /**
+     * Troca as quantidades de mapas FF, Spot e recarga pelas informadas na tela,
+     * só se foram salvas para a mesma entrega dos mapas importados (os ajustes de
+     * ontem não valem para o 03.11.49.02 de hoje). Guarda a quantidade do arquivo
+     * em 'calculados' para mostrar ao lado. Cx/viagem continua pelo arquivo.
+     */
+    public static function aplicarAjustes(array $farol, ?array $digitados): array
+    {
+        $farol['calculados'] = [];
+        if (!$digitados || $digitados['ajuste_data'] !== $farol['data_entrega']) {
+            return $farol;
+        }
+
+        foreach (self::AJUSTES as $campo => $coluna) {
+            if ($digitados[$coluna] !== null) {
+                $farol['calculados'][$campo] = $farol[$campo];
+                $farol[$campo] = (int) $digitados[$coluna];
+            }
+        }
+
+        return $farol;
+    }
+
     /**
      * Resumo do dia: soma das revendas.
      */

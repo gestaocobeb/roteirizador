@@ -323,11 +323,21 @@ CREATE TABLE IF NOT EXISTS farol_revendas (
     volume_vendido_hl DECIMAL(12,2) NULL,
     observacao_spot VARCHAR(150) NULL,
     observacao_recarga VARCHAR(150) NULL,
+    mapas_ff_ajuste SMALLINT UNSIGNED NULL COMMENT 'Mapas FF informados (NULL = do 03.11.49.02)',
+    mapas_spot_ajuste SMALLINT UNSIGNED NULL COMMENT 'Mapas Spot informados (NULL = do 03.11.49.02)',
+    recargas_ajuste SMALLINT UNSIGNED NULL COMMENT 'Recargas informadas (NULL = do 03.11.49.02)',
+    ajuste_data DATE NULL COMMENT 'Entrega dos mapas quando os ajustes foram salvos',
     usuarios_id INT UNSIGNED NOT NULL,
     atualizado_em DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     UNIQUE KEY uk_farol_revendas (revenda),
     CONSTRAINT fk_farol_revendas_usuarios FOREIGN KEY (usuarios_id) REFERENCES usuarios (id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Ajuste manual das quantidades de mapas FF, Spot e recarga (valem só para a entrega de ajuste_data).
+ALTER TABLE farol_revendas ADD COLUMN IF NOT EXISTS mapas_ff_ajuste SMALLINT UNSIGNED NULL COMMENT 'Mapas FF informados (NULL = do 03.11.49.02)' AFTER observacao_recarga;
+ALTER TABLE farol_revendas ADD COLUMN IF NOT EXISTS mapas_spot_ajuste SMALLINT UNSIGNED NULL COMMENT 'Mapas Spot informados (NULL = do 03.11.49.02)' AFTER mapas_ff_ajuste;
+ALTER TABLE farol_revendas ADD COLUMN IF NOT EXISTS recargas_ajuste SMALLINT UNSIGNED NULL COMMENT 'Recargas informadas (NULL = do 03.11.49.02)' AFTER mapas_spot_ajuste;
+ALTER TABLE farol_revendas ADD COLUMN IF NOT EXISTS ajuste_data DATE NULL COMMENT 'Entrega dos mapas quando os ajustes foram salvos' AFTER recargas_ajuste;
 
 -- CTE (substitui a planilha "Ct'e PM"): uma linha por placa, com o 1º mapa da placa
 -- no 03.11.49.02 (enviado pela aba CTE ou pela Tirinha). Valor do 03.03.12 (colado);

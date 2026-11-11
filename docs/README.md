@@ -149,7 +149,7 @@ Painel do dia por revenda (Logística), equivalente às abas "Plan1" e "R. 03.11
 - **Farol - Mapas roteirizados (Promax 03.11.49.02)**: um registro por mapa. A revenda vem da coluna UNB.
 - **Farol - Pedidos do Cora (pedidos_roteirizacao)**: export do Cora `<filial>_<n>_pedidos_roteirizacao_<data>.csv`, um item por linha. Grava um registro por pedido e Situação do pedido (coluna K) com o HectoLitro (coluna W) somado. A revenda vem do CodigoFilialVenda (772003 = PM, 1883003 = LP, 984507 = AB). O arquivo não traz setor: no buffer, o setor do cliente (código e descrição) vem do **Cadastro de clientes (Promax 01.20.11)** e, se o cliente não estiver lá, da última importação do Cora usada na Crítica. O 01.20.11 traz o código do cliente com ponto de milhar ("45.554"), lido como 45554.
 
-Cada importação substitui os dados da revenda. Os volumes vendido, roteirizado e buffer saem do arquivo do Cora; só as observações de Spot e recarga são digitadas no card da revenda (tabela `farol_revendas`; a coluna `volume_vendido_hl` ficou sem uso).
+Cada importação substitui os dados da revenda. Os volumes vendido, roteirizado e buffer saem do arquivo do Cora; no card da revenda são digitadas as observações de Spot e recarga e, se preciso, o ajuste das quantidades de Mapas FF, Mapas Spot e Recarga (tabela `farol_revendas`; a coluna `volume_vendido_hl` ficou sem uso).
 
 **Imagem para WhatsApp**: o botão "Baixar imagem para WhatsApp" gera um PNG com os cards das revendas e o resumo do dia, no navegador. Em "Mapas e buffer" de cada revenda, o botão "Baixar imagem do buffer" gera a tabela do buffer reprogramado com **uma linha por cliente**: os pedidos duplicados do cliente são juntados e o volume é o total dele (cliente, nome do cliente, setor, quantidade de pedidos e volume total), com o total geral, ordenada por **setor**, depois **volume** total (maior primeiro) e depois **cliente** (clientes sem setor no fim). Na tela e no Excel, a coluna Pedidos traz os números dos pedidos (maior volume primeiro). Ao lado, "Baixar em Excel" (rota `/farol/buffer/{revenda}`) baixa a mesma lista em CSV para Excel (separador `;`, UTF-8 com BOM), com setor em duas colunas (código e descrição) e uma linha de total. O desenho é feito em `<canvas>` com JavaScript puro (`public/assets/js/farol.js`), sem biblioteca e sem processamento no servidor. No celular, quando o sistema é acessado por HTTPS, o botão abre direto o compartilhamento (WhatsApp); nos demais casos, baixa o arquivo `farol-DDMMAAAA.png`.
 
@@ -164,7 +164,7 @@ Regras (`app/Helpers/Farol.php`):
 | Clientes roteirizados | Soma das "Entregas" de todos os mapas (FF + Spot + Recarga) |
 | Clientes buffer | Clientes distintos com pedido REPROGRAMADO (na planilha era digitado) |
 | Peso roteirizado | Soma do "Total peso" dos mapas |
-| Mapas FF / Spot / Recarga programada | Quantidade de mapas de cada tipo |
+| Mapas FF / Spot / Recarga programada | Quantidade de mapas de cada tipo. Pode ser ajustada no card (campo em branco = do 03.11.49.02); o ajuste vale só para a entrega dos mapas importados quando foi salvo (coluna `ajuste_data`), aparece com o selo "ajustado" e a quantidade do arquivo ao lado, e entra na imagem do WhatsApp. Cx/viagem continua pelo arquivo |
 | Cx/viagem FF e Spot | Total de caixas do tipo ÷ mapas do tipo |
 
 Diferença da planilha: na aba "R. 03.11.49.02", as placas eram listadas à mão em FF, SPOT e RECARGA. No sistema, a classificação é automática. Uma placa com mais de um mapa no dia conta o 1º como FF (ou Spot, se for Freteiro) e os demais como recarga. Conferido com a planilha de 06/11/2026: clientes roteirizados, peso, mapas e cx/viagem idênticos nas três revendas. Desde a versão 1.8.0 os volumes vêm do arquivo pedidos_roteirizacao do Cora (antes, o vendido era digitado do Promax 03.01.47.01 e o buffer vinha do export do Cora com "Tipo buffer").
@@ -219,7 +219,7 @@ Aba da Logística que monta a planilha do CT-e, **uma revenda por vez** (PM, LP 
 
 | Coluna | Origem |
 |---|---|
-| Mapa e Placa | 03.11.49.02 (arquivo enviado na aba CTE **ou na Tirinha**: o mesmo arquivo da Tirinha já atualiza o CTE da revenda). **Uma linha por placa**: vale o 1º mapa da placa no arquivo; as recargas não entram. Ordem por mapa (como a macro "Classificar" da planilha). A revenda vem da coluna UNB |
+| Mapa e Placa | 03.11.49.02 (arquivo enviado na aba CTE **ou na Tirinha**: o mesmo arquivo da Tirinha já atualiza o CTE da revenda). Todos os mapas do arquivo são guardados (recargas inclusive), mas **na planilha entram só os mapas colados em Motoristas** (mapa, código e nome); os demais ficam de fora até terem motorista. Ordem por mapa (como a macro "Classificar" da planilha). A revenda vem da coluna UNB. As placas TDO2B97, TDV7F68, SYC8B33, TDK1B19, TDK1B21 e OLZ5103 não entram (lista em `Cte::PLACAS_IGNORADAS`) |
 | Preço frete - cód. cidade | Tabela de fretes da revenda (aba "TABELA CUSTOS FRETES"), procurada pelas cidades do mapa, na ordem do relatório (ex.: `NOVA SERRANA / IGARATINGA`) |
 | Valor | 03.03.12 colado da tela (aba "03_03_12"): a linha começa pelo mapa (o ponto de milhar é ignorado: "398.891" = 398891) e o valor é o primeiro número com centavos |
 | Pedido, Peso e Cidade | Entregas, Total peso e Cidades +Entregas (sem as quantidades) do 03.11.49.02 |
@@ -229,7 +229,7 @@ Aba da Logística que monta a planilha do CT-e, **uma revenda por vez** (PM, LP 
 - Reenviar o 03.11.49.02 substitui as placas da revenda, mas mantém o valor e o que foi digitado nos mapas que continuam no arquivo.
 - **Exportar:** "Salvar e exportar Excel" grava o que foi digitado e baixa `cte-<revenda>-<data>.xlsx` **no mesmo formato da aba Cte da planilha** (`app/Helpers/CteExcel.php`): usa os estilos e o tema copiados da planilha (`app/Helpers/Modelos/cte-estilos.xml` e `cte-tema.xml`), data de entrega mesclada em A1:J1, cabeçalho na linha 2, mesmas larguras e alturas (linhas com muitas cidades ficam mais altas), linhas de PARA DE MINAS em verde, A4 retrato em 68% e cabeçalho/rodapé "Cte" e "Página N". O VALOR sai como número (#.##0,00). Gerado em PHP puro (`app/Helpers/XlsxEscritor.php`, extensão zip). A rota `/cte/exportar/{revenda}` baixa sem salvar.
 - **Tabela de fretes:** por revenda, no fim da tela (cadastrar, editar e excluir). A de PM vem da planilha (404 rotas; nas rotas repetidas vale a 1ª, como no PROCV: MARAVILHAS = 1357,88 - 2532 e PARA DE MINAS / IGARATINGA = 1173,20 - 2741). LP e AB começam vazias. Cidades sem frete aparecem em destaque, com botão para cadastrar.
-- Conferido com a planilha de 09/11/2026 (PM): as 20 placas em comum têm frete, valor, pedido, peso e cidade idênticos. Diferenças pela regra do 1º mapa: a planilha usava o 398896 da RTS1D05 (o sistema usa o 398895) e não tinha as placas SYC8B33, TDO2B97 e TDV7F68.
+- Conferido com a planilha de 09/11/2026 (PM): as 20 placas em comum têm frete, valor, pedido, peso e cidade idênticos. A planilha usava o 398896 da RTS1D05 e não tinha as placas SYC8B33, TDO2B97 e TDV7F68: agora as três são ignoradas e entram só os mapas colados em Motoristas (colar o 398896 traz a RTS1D05 como na planilha).
 
 ## Estrutura específica do sistema
 
